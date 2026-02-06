@@ -1,39 +1,44 @@
-# recapisure - project dependencies
+# recapisure - Essential Dependencies
+# 実際のコードで使用されているパッケージのみを記載
 
-# Web Framework
+# ===== Web Framework =====
 Flask==3.0.3
 Werkzeug>=3.0.0
-Flask-Cors>=5.0.0
-Flask-SQLAlchemy>=3.1.1
 
-# HTTP & Web Scraping
+# ===== WebSocket (Real-time Progress) =====
+flask-socketio>=5.6.0
+python-engineio>=4.8.0
+python-socketio>=5.10.0
+
+# ===== HTTP & Web Scraping =====
 requests>=2.31.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.3
+urllib3>=2.0.0
 
-# PDF Processing
+# URL Content Extraction
+trafilatura>=2.0.0        # メイン: 高精度な本文抽出
+beautifulsoup4>=4.12.0    # フォールバック: HTMLパース
+lxml>=4.9.3               # bs4用の高速パーサー
+
+# ===== PDF Processing =====
 PyPDF2>=3.0.0
 pdfplumber>=0.11.0
+
+# OCR (Optional)
 pytesseract>=0.3.10
 Pillow>=10.0.0
 pdf2image>=1.16.3
 
-# AI/ML - Transformers & PyTorch
+# ===== AI/ML - Transformers & PyTorch =====
 transformers>=4.57.0
 torch>=2.5.0
 torchvision>=0.20.0
 sentencepiece>=0.1.99
 sacremoses>=0.0.53
 
-# Apertus LLM用 (4bit量子化)
+# LLM Optimization (4bit量子化)
 accelerate>=0.25.0
 bitsandbytes>=0.41.0
 
-# Environment & Configuration
+# ===== Environment & Configuration =====
 python-dotenv>=1.0.0
-
-# WebSocket support for real-time progress
-flask-socketio>=5.6.0
-python-engineio>=4.8.0
-python-socketio>=5.10.0
 
