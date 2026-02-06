@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+
+{% block title %}処理履歴 - recapisure{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>処理履歴
+                        </h4>
+                        <div>
+                            <button class="btn btn-light btn-sm" onclick="exportHistory()">
+                                <i class="fas fa-download me-1"></i>エクスポート
+                            </button>
+                            <button class="btn btn-outline-light btn-sm ms-2" onclick="clearHistory()">
+                                <i class="fas fa-trash me-1"></i>履歴をクリア
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- フィルター -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label for="typeFilter" class="form-label">処理タイプ</label>
+                            <select class="form-select" id="typeFilter" onchange="filterHistory()">
+                                <option value="all">すべて</option>
+                                <option value="summarize">要約</option>
+                                <option value="expand">展開</option>
+                                <option value="url_summarize">URL要約</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dateFilter" class="form-label">期間</label>
+                            <select class="form-select" id="dateFilter" onchange="filterHistory()">
+                                <option value="all">すべて</option>
+                                <option value="today">今日</option>
+                                <option value="week">過去1週間</option>
+                                <option value="month">過去1ヶ月</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchInput" class="form-label">検索</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="結果を検索..." onkeyup="filterHistory()">
+                        </div>
+                    </div>
+
+                    <!-- 履歴リスト -->
+                    <div id="historyContainer">
+                        <div class="text-center py-5" id="emptyState">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">処理履歴がありません</h5>
+                            <p class="text-muted mb-0">
+                                <a href="/" class="btn btn-primary">
+                                    <i class="fas fa-magic me-1"></i>最初の処理を開始
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-text me-2"></i>処理詳細
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 基本情報 -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <small class="text-muted">処理日時</small><br>
+                                <strong id="modalTimestamp"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <small class="text-muted">処理タイプ</small><br>
+                                <span id="modalType" class="badge bg-info"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <small class="text-muted">言語</small><br>
+                                <strong id="modalLanguage"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ⭐ 入力テキスト（左）と要約結果（右）を並べて表示 -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100" id="modalOriginal">
+                            <div class="card-header bg-secondary text-white py-2">
+                                <i class="fas fa-file-alt me-1"></i>
+                                <strong>入力テキスト</strong>
+                                <span class="badge bg-light text-dark ms-2" id="modalOriginalLength">0文字</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="modalOriginalText" 
+                                     style="height: 300px; overflow-y: auto; padding: 12px; background-color: #f8f9fa; white-space: pre-wrap; font-size: 14px; line-height: 1.6;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white py-2">
+                                <i class="fas fa-compress-alt me-1"></i>
+                                <strong>要約結果</strong>
+                                <span class="badge bg-light text-dark ms-2" id="modalResultLength">0文字</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="modalResultText" 
+                                     style="height: 300px; overflow-y: auto; padding: 12px; background-color: #e8f5e9; white-space: pre-wrap; font-size: 14px; line-height: 1.6;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 圧縮率表示 -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0 py-2">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            <strong>圧縮率:</strong> <span id="modalCompressionRate">-</span>
+                            <span class="ms-3"><strong>実行時間:</strong> <span id="modalExecTime">-</span></span>
+                            <span class="ms-3"><strong>品質スコア:</strong> <span id="modalQualityScore">-</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ⭐ キーワードセクション -->
+                <div class="row mt-3" id="modalKeywordsSection">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark py-2">
+                                <i class="fas fa-tags me-1"></i>
+                                <strong>抽出されたキーワード</strong>
+                            </div>
+                            <div class="card-body py-2" id="modalKeywords">
+                                <span class="text-muted">キーワードがありません</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="copyModalOriginal()">
+                    <i class="fas fa-copy me-1"></i>入力をコピー
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="copyModalResult()">
+                    <i class="fas fa-copy me-1"></i>結果をコピー
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveModalResult()">
+                    <i class="fas fa-download me-1"></i>保存
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allHistory = [];
+let filteredHistory = [];
+let currentDetail = null;
+
+$(document).ready(function() {
+    loadHistory();
+});
+
+function loadHistory() {
+    $.get('/api/history', function(data) {
+        if (data.success) {
+            allHistory = data.history || [];
+            filteredHistory = [...allHistory];
+            displayHistory();
+        } else {
+            console.error('履歴の取得に失敗:', data.error);
+        }
+    }).fail(function(xhr, status, error) {
+        console.error('履歴API呼び出しエラー:', error);
+    });
+}
+
+function displayHistory() {
+    const container = $('#historyContainer');
+    const emptyState = $('#emptyState');
+    
+    if (filteredHistory.length === 0) {
+        emptyState.show();
+        return;
+    }
+    
+    emptyState.hide();
+    
+    let html = '';
+    // 最新順（reverseせずにそのまま表示）
+    filteredHistory.forEach((item, index) => {
+        const typeInfo = getTypeInfo(item.operation_type || item.type || 'summarize');
+        const date = new Date(item.created_at || item.timestamp).toLocaleString('ja-JP');
+        const result = item.result_text || item.result || '';
+        const original = item.original_text || '';
+        const execTime = item.execution_time || 0;
+        const qualityScore = item.quality_score || 0;
+        const keywords = item.keywords || [];
+        
+        // 言語情報
+        const sourceLang = item.source_lang || 'auto';
+        const targetLang = item.target_lang || 'jpn_Jpan';
+        
+        // キーワードタグを生成
+        const keywordsHtml = keywords.length > 0 
+            ? `<div class="mb-2">
+                <i class="fas fa-tags me-1 text-muted"></i>
+                ${keywords.slice(0, 5).map(k => `<span class="badge bg-light text-dark me-1">${escapeHtml(k)}</span>`).join('')}
+                ${keywords.length > 5 ? `<span class="text-muted small">+${keywords.length - 5}</span>` : ''}
+               </div>`
+            : '';
+        
+        html += `
+            <div class="card mb-3 history-item">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="card-title mb-2">
+                                <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                ${date}
+                                <span class="badge bg-${typeInfo.color} ms-2">
+                                    <i class="${typeInfo.icon} me-1"></i>${typeInfo.name}
+                                </span>
+                                ${qualityScore > 0 ? `<span class="badge bg-${qualityScore >= 80 ? 'success' : qualityScore >= 60 ? 'warning' : 'secondary'} ms-1" title="品質スコア">
+                                    <i class="fas fa-star me-1"></i>${Math.round(qualityScore)}点
+                                </span>` : ''}
+                            </h6>
+                            
+                            <!-- 言語情報 -->
+                            <p class="card-text text-muted small mb-2">
+                                <i class="fas fa-language me-1"></i>
+                                ${formatLanguage(sourceLang)} → ${formatLanguage(targetLang)}
+                            </p>
+                            
+                            <!-- ⭐ キーワード表示 -->
+                            ${keywordsHtml}
+                            
+                            ${original ? `
+                                <p class="card-text text-muted small mb-2">
+                                    <strong>元のテキスト:</strong> ${escapeHtml(original.substring(0, 100))}${original.length > 100 ? '...' : ''}
+                                </p>
+                            ` : ''}
+                            
+                            <p class="card-text mb-2">
+                                <strong>結果:</strong> ${escapeHtml(result.substring(0, 150))}${result.length > 150 ? '...' : ''}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <div class="mb-2">
+                                    <small class="text-muted">実行時間</small><br>
+                                    <strong class="text-success">${Number(execTime).toFixed(2)}s</strong>
+                                </div>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewDetail(${index})">
+                                        <i class="fas fa-eye me-1"></i>詳細
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="copyResultByIndex(${index})">
+                                        <i class="fas fa-copy me-1"></i>コピー
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.html(html);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatLanguage(langCode) {
+    const langMap = {
+        'jpn_Jpan': '🇯🇵 日本語',
+        'eng_Latn': '🇺🇸 英語',
+        'zho_Hans': '🇨🇳 中国語(簡)',
+        'zho_Hant': '🇹🇼 中国語(繁)',
+        'kor_Hang': '🇰🇷 韓国語',
+        'fra_Latn': '🇫🇷 フランス語',
+        'deu_Latn': '🇩🇪 ドイツ語',
+        'spa_Latn': '🇪🇸 スペイン語',
+        'auto': '🔍 自動検出'
+    };
+    return langMap[langCode] || langCode;
+}
+
+function getTypeInfo(type) {
+    const types = {
+        summarize: { name: '要約', icon: 'fas fa-compress-alt', color: 'primary' },
+        short: { name: '通常要約', icon: 'fas fa-compress-alt', color: 'primary' },
+        long: { name: '詳細要約', icon: 'fas fa-compress-alt', color: 'info' },
+        expand: { name: '展開', icon: 'fas fa-expand-alt', color: 'success' },
+        url_summarize: { name: 'URL要約', icon: 'fas fa-globe', color: 'info' },
+        url: { name: 'URL要約', icon: 'fas fa-globe', color: 'info' }
+    };
+    return types[type] || { name: type || '要約', icon: 'fas fa-file-alt', color: 'secondary' };
+}
+
+function filterHistory() {
+    const typeFilter = $('#typeFilter').val();
+    const dateFilter = $('#dateFilter').val();
+    const searchQuery = $('#searchInput').val().toLowerCase();
+    
+    filteredHistory = allHistory.filter(item => {
+        // タイプフィルター
+        const itemType = item.operation_type || item.type || 'summarize';
+        if (typeFilter !== 'all' && itemType !== typeFilter && 
+            !(typeFilter === 'summarize' && (itemType === 'short' || itemType === 'long'))) {
+            return false;
+        }
+        
+        // 日付フィルター
+        if (dateFilter !== 'all') {
+            const itemDate = new Date(item.created_at || item.timestamp);
+            const now = new Date();
+            const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+            
+            if (dateFilter === 'today' && diffDays > 1) return false;
+            if (dateFilter === 'week' && diffDays > 7) return false;
+            if (dateFilter === 'month' && diffDays > 30) return false;
+        }
+        
+        // 検索フィルター
+        if (searchQuery) {
+            const result = item.result_text || item.result || '';
+            const original = item.original_text || '';
+            const searchText = (result + ' ' + original).toLowerCase();
+            if (!searchText.includes(searchQuery)) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    displayHistory();
+}
+
+function viewDetail(index) {
+    currentDetail = filteredHistory[index];
+    
+    // 基本情報
+    $('#modalTimestamp').text(new Date(currentDetail.created_at || currentDetail.timestamp).toLocaleString('ja-JP'));
+    
+    const typeInfo = getTypeInfo(currentDetail.operation_type || currentDetail.type);
+    $('#modalType').html(`<i class="${typeInfo.icon} me-1"></i>${typeInfo.name}`);
+    $('#modalType').removeClass().addClass(`badge bg-${typeInfo.color}`);
+    
+    // 言語情報
+    const sourceLang = currentDetail.source_lang || 'auto';
+    const targetLang = currentDetail.target_lang || 'jpn_Jpan';
+    $('#modalLanguage').text(`${formatLanguage(sourceLang)} → ${formatLanguage(targetLang)}`);
+    
+    // 入力テキストと要約結果
+    const original = currentDetail.original_text || '';
+    const result = currentDetail.result_text || currentDetail.result || '';
+    
+    if (original) {
+        $('#modalOriginal').show();
+        $('#modalOriginalText').text(original);
+        $('#modalOriginalLength').text(original.length + '文字');
+    } else {
+        $('#modalOriginal').hide();
+        $('#modalOriginalLength').text('0文字');
+    }
+    
+    $('#modalResultText').text(result);
+    $('#modalResultLength').text(result.length + '文字');
+    
+    // 圧縮率の計算
+    if (original.length > 0 && result.length > 0) {
+        const compressionRate = Math.round((1 - result.length / original.length) * 100);
+        $('#modalCompressionRate').text(`${compressionRate}% 圧縮 (${original.length}文字 → ${result.length}文字)`);
+    } else {
+        $('#modalCompressionRate').text('-');
+    }
+    
+    // 実行時間
+    const execTime = currentDetail.execution_time || 0;
+    $('#modalExecTime').text(`${Number(execTime).toFixed(2)}秒`);
+    
+    // ⭐ 品質スコア表示
+    const qualityScore = currentDetail.quality_score || 0;
+    if (qualityScore > 0) {
+        const scoreColor = qualityScore >= 80 ? 'success' : qualityScore >= 60 ? 'warning' : 'secondary';
+        $('#modalQualityScore').html(`<span class="badge bg-${scoreColor}">${Math.round(qualityScore)}点</span>`);
+    } else {
+        $('#modalQualityScore').text('-');
+    }
+    
+    // ⭐ キーワード表示
+    const keywords = currentDetail.keywords || [];
+    if (keywords.length > 0) {
+        const keywordsHtml = keywords.map(k => 
+            `<span class="badge bg-info text-dark me-1 mb-1">${escapeHtml(k)}</span>`
+        ).join('');
+        $('#modalKeywords').html(keywordsHtml);
+        $('#modalKeywordsSection').show();
+    } else {
+        $('#modalKeywords').html('<span class="text-muted">キーワードがありません</span>');
+        $('#modalKeywordsSection').show();
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+    modal.show();
+}
+
+function copyResultByIndex(index) {
+    const item = filteredHistory[index];
+    const result = item.result_text || item.result || '';
+    navigator.clipboard.writeText(result).then(() => {
+        showToast('📋 結果をコピーしました', 'success');
+    }).catch(err => {
+        alert('コピーに失敗しました: ' + err);
+    });
+}
+
+function copyModalResult() {
+    const result = $('#modalResultText').text();
+    navigator.clipboard.writeText(result).then(() => {
+        showToast('📋 結果をコピーしました', 'success');
+    }).catch(err => {
+        alert('コピーに失敗しました: ' + err);
+    });
+}
+
+function copyModalOriginal() {
+    const original = $('#modalOriginalText').text();
+    if (!original) {
+        showToast('⚠️ 入力テキストがありません', 'warning');
+        return;
+    }
+    navigator.clipboard.writeText(original).then(() => {
+        showToast('📋 入力テキストをコピーしました', 'success');
+    }).catch(err => {
+        alert('コピーに失敗しました: ' + err);
+    });
+}
+
+function saveModalResult() {
+    if (!currentDetail) return;
+    
+    const typeInfo = getTypeInfo(currentDetail.operation_type || currentDetail.type);
+    const result = currentDetail.result_text || currentDetail.result || '';
+    const original = currentDetail.original_text || '';
+    const timestamp = currentDetail.created_at || currentDetail.timestamp;
+    const execTime = currentDetail.execution_time || 0;
+    
+    const content = `${typeInfo.name}結果
+==========
+
+処理日時: ${new Date(timestamp).toLocaleString('ja-JP')}
+処理タイプ: ${typeInfo.name}
+実行時間: ${Number(execTime).toFixed(2)}秒
+
+${original ? `元のテキスト:
+${original}
+
+` : ''}結果:
+${result}
+`;
+    
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recapisure_${typeInfo.name}_${new Date(timestamp).toISOString().slice(0,19).replace(/:/g, '-')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportHistory() {
+    if (allHistory.length === 0) {
+        alert('エクスポートする履歴がありません');
+        return;
+    }
+    
+    let content = 'recapisure 処理履歴エクスポート\n';
+    content += '==================\n';
+    content += `エクスポート日時: ${new Date().toLocaleString('ja-JP')}\n`;
+    content += `総件数: ${allHistory.length}件\n\n`;
+    
+    allHistory.forEach((item, index) => {
+        const typeInfo = getTypeInfo(item.operation_type || item.type);
+        const result = item.result_text || item.result || '';
+        const original = item.original_text || '';
+        const timestamp = item.created_at || item.timestamp;
+        const execTime = item.execution_time || 0;
+        
+        content += `${index + 1}. ${new Date(timestamp).toLocaleString('ja-JP')}\n`;
+        content += `処理タイプ: ${typeInfo.name}\n`;
+        content += `実行時間: ${Number(execTime).toFixed(2)}秒\n`;
+        content += `言語: ${item.source_lang || 'auto'} → ${item.target_lang || 'jpn_Jpan'}\n`;
+        
+        if (original) {
+            content += `元のテキスト: ${original.substring(0, 200)}${original.length > 200 ? '...' : ''}\n`;
+        }
+        
+        content += `結果: ${result.substring(0, 300)}${result.length > 300 ? '...' : ''}\n`;
+        content += '\n' + '-'.repeat(50) + '\n\n';
+    });
+    
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recapisure_history_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showToast('📥 履歴をエクスポートしました', 'success');
+}
+
+function clearHistory() {
+    if (confirm('すべての処理履歴を削除しますか？この操作は取り消せません。')) {
+        $.post('/api/history/clear', function(data) {
+            if (data.success) {
+                allHistory = [];
+                filteredHistory = [];
+                displayHistory();
+                showToast('🗑️ 履歴をクリアしました', 'success');
+            } else {
+                alert('履歴のクリアに失敗しました: ' + (data.error || '不明なエラー'));
+            }
+        }).fail(function() {
+            // APIがない場合はクライアント側でクリア
+            allHistory = [];
+            filteredHistory = [];
+            displayHistory();
+            showToast('🗑️ 表示履歴をクリアしました', 'info');
+        });
+    }
+}
+
+// トースト通知
+function showToast(message, type = 'success') {
+    const toastId = 'toast-' + Date.now();
+    const bgMap = {
+        success: 'bg-success',
+        error: 'bg-danger',
+        info: 'bg-info',
+        warning: 'bg-warning'
+    };
+    
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgMap[type]} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    if (!$('#toastContainer').length) {
+        $('body').append('<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"><div id="toastContainer"></div></div>');
+    }
+    
+    $('#toastContainer').append(toastHtml);
+    const toastElement = new bootstrap.Toast(document.getElementById(toastId));
+    toastElement.show();
+    
+    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+</script>
+{% endblock %}

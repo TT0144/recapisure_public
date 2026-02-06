@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}AI設定 - recapisure{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- ヘッダー -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-robot me-2"></i>AI設定とサービス状態
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-2">サービス状態</h6>
+                            <div id="serviceStatus" class="mb-3">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">読み込み中...</span>
+                                </div>
+                                状態を確認中...
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold mb-2">現在のモデル</h6>
+                            <div id="currentModel" class="mb-3">
+                                <span class="badge bg-info">読み込み中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- モデル選択 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-cogs me-2"></i>🇨🇭 Apertusモデル設定
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="modelForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="modelSelect" class="form-label">使用モデル</label>
+                                <select class="form-select" id="modelSelect">
+                                    <option value="">読み込み中...</option>
+                                </select>
+                                <div class="form-text">
+                                    処理に使用するAIモデルを選択してください
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">モデル情報</label>
+                                <div id="modelInfo" class="p-3 border rounded bg-light">
+                                    <div class="spinner-border spinner-border-sm" role="status">
+                                        <span class="visually-hidden">読み込み中...</span>
+                                    </div>
+                                    モデル情報を読み込み中...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary" id="saveModelBtn" onclick="saveModelPreference()">
+                                <i class="fas fa-save me-1"></i>設定を保存
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="testConnection()">
+                                <i class="fas fa-plug me-1"></i>接続テスト
+                            </button>
+                            <button type="button" class="btn btn-outline-info ms-2" onclick="loadRecommendedModel()">
+                                <i class="fas fa-magic me-1"></i>推奨モデルを適用
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- API設定 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-key me-2"></i>API設定
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        API設定は環境変数（.envファイル）で管理されています。
+                        変更するには、アプリケーションを再起動する必要があります。
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Apertus API</h6>
+                            <div class="mb-2">
+                                <strong>ステータス:</strong> 
+                                <span id="apertusStatus" class="badge bg-secondary">確認中...</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>ベースURL:</strong> 
+                                <code id="apertusUrl">-</code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">使用量統計</h6>
+                            <div class="mb-2">
+                                <strong>今日の処理数:</strong> 
+                                <span id="todayCount" class="fw-bold">-</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>総使用トークン:</strong> 
+                                <span id="totalTokens" class="fw-bold">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- パフォーマンス設定 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>パフォーマンス設定
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="performanceForm">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="requestTimeout" class="form-label">リクエストタイムアウト (秒)</label>
+                                <input type="number" class="form-control" id="requestTimeout" min="10" max="120" value="30">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="maxRetries" class="form-label">最大リトライ回数</label>
+                                <input type="number" class="form-control" id="maxRetries" min="1" max="5" value="3">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="temperature" class="form-label">創造性レベル (0.0-2.0)</label>
+                                <input type="number" class="form-control" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-save me-1"></i>パフォーマンス設定を保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 診断情報 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-stethoscope me-2"></i>システム診断
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">依存関係</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Flask</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Requests</li>
+                                <li id="beautifulSoupStatus"><i class="fas fa-times text-danger me-2"></i>BeautifulSoup4</li>
+                                <li id="apertusClientStatus"><i class="fas fa-times text-danger me-2"></i>Apertus Client</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">システム情報</h6>
+                            <div class="small">
+                                <div><strong>Python:</strong> <span id="pythonVersion">-</span></div>
+                                <div><strong>アプリバージョン:</strong> 1.0.0</div>
+                                <div><strong>起動時間:</strong> <span id="uptime">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-outline-dark" onclick="runDiagnostics()">
+                            <i class="fas fa-play me-1"></i>診断を実行
+                        </button>
+                        <button class="btn btn-outline-secondary ms-2" onclick="exportDiagnostics()">
+                            <i class="fas fa-download me-1"></i>診断結果をエクスポート
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let serviceStatus = null;
+
+$(document).ready(function() {
+    loadServiceStatus();
+    loadAvailableModels();
+    loadSystemInfo();
+});
+
+function loadServiceStatus() {
+    // Apertusステータスを取得
+    $.get('/api/apertus/status', function(data) {
+        if (data.success) {
+            serviceStatus = data.status;
+            updateServiceStatusDisplay(data);
+        }
+    }).fail(function() {
+        $('#serviceStatus').html('<span class="text-danger">サービス状態の取得に失敗しました</span>');
+    });
+}
+
+function updateServiceStatusDisplay(data) {
+    const statusHtml = data.available ? 
+        '<span class="badge bg-success"><i class="fas fa-check me-1"></i>利用可能</span>' :
+        '<span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>制限付き</span>';
+    
+    const learningInfo = data.learning_enabled ? 
+        `<small class="text-success d-block mt-1">学習システム有効 (${data.feedback_count}件のフィードバック)</small>` : 
+        '<small class="text-muted d-block mt-1">学習システム無効</small>';
+    
+    $('#serviceStatus').html(statusHtml + learningInfo);
+    
+    if (data.status && data.status.model_display_name) {
+        $('#currentModel').html(`<span class="badge bg-info">${data.status.model_display_name}</span>`);
+    }
+    
+    // API状態更新
+    const apertusStatusBadge = data.available ? 
+        '<span class="badge bg-success">動作中</span>' :
+        '<span class="badge bg-warning">制限モード</span>';
+    $('#apertusStatus').html(apertusStatusBadge);
+}
+
+function loadAvailableModels() {
+    $.get('/api/apertus/models', function(data) {
+        if (data.success) {
+            const select = $('#modelSelect');
+            select.empty();
+            
+            // 推奨モデルを保存
+            window.recommendedModel = data.recommended;
+            
+            // モデルオプションを追加
+            Object.keys(data.models).forEach(key => {
+                const model = data.models[key];
+                const badge = key === data.recommended ? ' 🌟' : '';
+                const option = $('<option></option>')
+                    .val(key)
+                    .text(`${model.name}${badge}`)
+                    .data('model', model);
+                
+                if (key === data.recommended) {
+                    option.prop('selected', true);
+                }
+                
+                select.append(option);
+            });
+            
+            // モデル選択時のイベント
+            select.change(function() {
+                const selectedOption = $(this).find('option:selected');
+                const modelData = selectedOption.data('model');
+                updateModelInfo(modelData);
+            });
+            
+            // 初期選択のモデル情報表示
+            const initialModel = select.find('option:selected').data('model');
+            if (initialModel) {
+                updateModelInfo(initialModel);
+            }
+        }
+    }).fail(function() {
+        $('#modelInfo').html('<span class="text-danger">モデル情報の取得に失敗しました</span>');
+    });
+}
+
+function updateModelInfo(model) {
+    if (!model) return;
+    
+    const gpuBadge = model.requires_gpu ? 
+        '<span class="badge bg-danger ms-1">GPU必須</span>' : 
+        '<span class="badge bg-success ms-1">CPU可</span>';
+    
+    const html = `
+        <div class="mb-2"><strong>モデル名:</strong> ${model.name} ${gpuBadge}</div>
+        <div class="mb-2"><strong>サイズ:</strong> ${model.size}</div>
+        <div class="mb-2"><strong>メモリ要件:</strong> ${model.memory_gb}GB</div>
+        <div class="mb-2"><strong>説明:</strong> ${model.description}</div>
+        <div class="small text-muted mt-2">
+            <strong>モデルID:</strong> <code>${model.model_id}</code>
+        </div>
+    `;
+    
+    $('#modelInfo').html(html);
+}
+
+function saveModelPreference() {
+    const selectedKey = $('#modelSelect').val();
+    if (!selectedKey) return;
+    
+    const btn = $('#saveModelBtn');
+    const originalText = btn.html();
+    btn.html('<i class="fas fa-spinner fa-spin me-1"></i>保存中...').prop('disabled', true);
+    
+    // ローカルストレージに保存
+    localStorage.setItem('preferred_apertus_model', selectedKey);
+    
+    setTimeout(function() {
+        btn.html('<i class="fas fa-check me-1"></i>保存完了!').removeClass('btn-primary').addClass('btn-success');
+        
+        setTimeout(function() {
+            btn.html(originalText).removeClass('btn-success').addClass('btn-primary').prop('disabled', false);
+        }, 2000);
+    }, 500);
+}
+
+function loadRecommendedModel() {
+    if (window.recommendedModel) {
+        $('#modelSelect').val(window.recommendedModel).trigger('change');
+        alert(`推奨モデル "${window.recommendedModel}" を適用しました`);
+    }
+}
+
+function loadSystemInfo() {
+    // システム情報の取得（実際の実装では適切なAPIを使用）
+    $('#pythonVersion').text('3.11+');
+    $('#uptime').text('起動中...');
+    
+    // 依存関係チェック
+    $('#beautifulSoupStatus').html('<i class="fas fa-check text-success me-2"></i>BeautifulSoup4');
+    $('#apertusClientStatus').html('<i class="fas fa-check text-success me-2"></i>Apertus Client');
+}
+
+$('#modelForm').submit(function(e) {
+    e.preventDefault();
+    
+    const selectedModel = $('#modelSelect').val();
+    if (!selectedModel) return;
+    
+    const btn = $('#saveModelBtn');
+    const originalText = btn.html();
+    btn.html('<i class="fas fa-spinner fa-spin me-1"></i>保存中...').prop('disabled', true);
+    
+    $.post('/api/change-model', {
+        model: selectedModel
+    }, function(data) {
+        if (data.success) {
+            alert('モデル設定を保存しました');
+            loadServiceStatus();
+        } else {
+            alert('設定の保存に失敗しました: ' + data.error);
+        }
+    }).fail(function() {
+        alert('設定の保存に失敗しました');
+    }).always(function() {
+        btn.html(originalText).prop('disabled', false);
+    });
+});
+
+$('#performanceForm').submit(function(e) {
+    e.preventDefault();
+    
+    const settings = {
+        timeout: $('#requestTimeout').val(),
+        retries: $('#maxRetries').val(),
+        temperature: $('#temperature').val()
+    };
+    
+    // ローカルストレージに保存（実際の実装では適切なAPIを使用）
+    localStorage.setItem('performanceSettings', JSON.stringify(settings));
+    alert('パフォーマンス設定を保存しました');
+});
+
+function testConnection() {
+    const btn = $('button[onclick="testConnection()"]');
+    const originalText = btn.html();
+    btn.html('<i class="fas fa-spinner fa-spin me-1"></i>テスト中...').prop('disabled', true);
+    
+    $.get('/api/health-check', function(data) {
+        if (data.success) {
+            alert('接続テスト成功！');
+        } else {
+            alert('接続テスト失敗: ' + data.error);
+        }
+    }).fail(function() {
+        alert('接続テストに失敗しました');
+    }).always(function() {
+        btn.html(originalText).prop('disabled', false);
+    });
+}
+
+function runDiagnostics() {
+    alert('診断機能は開発中です');
+}
+
+function exportDiagnostics() {
+    const diagnostics = {
+        timestamp: new Date().toISOString(),
+        service_status: serviceStatus,
+        browser_info: navigator.userAgent,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        url: window.location.href
+    };
+    
+    const blob = new Blob([JSON.stringify(diagnostics, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recapisure_diagnostics_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

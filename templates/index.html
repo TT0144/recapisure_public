@@ -1,0 +1,1685 @@
+{% extends "base.html" %}
+
+{% block title %}recapisure - 高性能日本語要約サービス{% endblock %}
+
+{% block content %}
+        <div class="row">
+            <div class="col-12 col-lg-10 mx-auto">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <!-- ⭐ 機能選択ボタン -->
+                        <div class="btn-group w-100 mb-3" role="group" aria-label="機能選択">
+                            <input type="radio" class="btn-check" name="featureMode" id="modeSummarize" value="summarize" checked autocomplete="off">
+                            <label class="btn btn-outline-primary" for="modeSummarize">
+                                <i class="fas fa-compress-alt me-1"></i>長文要約
+                            </label>
+
+                            <input type="radio" class="btn-check" name="featureMode" id="modeExpand" value="expand" autocomplete="off">
+                            <label class="btn btn-outline-success" for="modeExpand">
+                                <i class="fas fa-expand-alt me-1"></i>短文展開
+                            </label>
+
+                            <input type="radio" class="btn-check" name="featureMode" id="modeUrl" value="url" autocomplete="off">
+                            <label class="btn btn-outline-info" for="modeUrl">
+                                <i class="fas fa-globe me-1"></i>URL要約
+                            </label>
+                            
+                            <!-- ⭐ コード解説機能は一時停止
+                            <input type="radio" class="btn-check" name="featureMode" id="modeCode" value="code" autocomplete="off">
+                            <label class="btn btn-outline-warning" for="modeCode">
+                                <i class="fas fa-code me-1"></i>コード解説
+                            </label>
+                            -->
+                        </div>
+                        
+                        <!-- ⭐ URL入力欄（URL要約モード時のみ表示） -->
+                        <div class="mb-3" id="urlInputArea" style="display: none;">
+                            <label for="urlInput" class="form-label">
+                                <i class="fas fa-link me-1"></i>URL
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                <input type="url" class="form-control" id="urlInput" placeholder="https://example.com/article">
+                                <button class="btn btn-primary" type="button" id="fetchUrlBtn">
+                                    <i class="fas fa-magic me-1"></i>要約
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                URLを入力して「要約」をクリックすると、記事を自動取得して要約します
+                            </div>
+                        </div>
+                        
+                        <!-- PDFドラッグ&ドロップゾーン -->
+                        <div class="pdf-drop-zone mb-3" id="pdf-drop-zone">
+                            <div class="drop-icon">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="drop-text">
+                                ファイルをここにドロップ
+                            </div>
+                            <div class="drop-subtext">
+                                またはクリックしてファイルを選択<br>
+                                <small class="text-muted">📄 PDF, TXT 📷 PNG, JPG, JPEG (説明書の写真もOK!)</small>
+                            </div>
+                        </div>
+                        
+                        <!-- 入力エリア -->
+                        <div class="mb-4" id="textInputArea">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label for="inputText" class="form-label mb-0">
+                                    <i class="fas fa-edit me-1"></i>入力テキスト
+                                </label>
+                                <span class="badge bg-secondary" id="charCounter">
+                                    <i class="fas fa-text-width me-1"></i>0文字
+                                </span>
+                            </div>
+                            <textarea class="form-control" id="inputText" rows="8" placeholder="ここに要約・展開したいテキストを入力してください..."></textarea>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                最大10,000文字まで対応。PDF・画像は上のドロップゾーンをご利用ください。
+                            </div>
+                        </div>
+                        <!-- ⭐ 設定アコーディオン -->
+                        <div class="accordion settings-accordion mb-4" id="settingsAccordion">
+                            <!-- 基本設定 -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingBasicSettings">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseBasicSettings" aria-expanded="true"
+                                            aria-controls="collapseBasicSettings">
+                                        <i class="fas fa-sliders-h me-2"></i>基本設定
+                                    </button>
+                                </h2>
+                                <div id="collapseBasicSettings" class="accordion-collapse collapse show">
+                                    <div class="accordion-body">
+                                        <div class="row g-3">
+                                            <!-- 入力言語 -->
+                                            <div class="col-md-6" id="sourceLangContainer">
+                                                <label for="sourceLang" class="form-label">
+                                                    <i class="fas fa-language me-1"></i>入力言語
+                                                </label>
+                                                <select class="form-select" id="sourceLang">
+                                                    <option value="auto" selected>自動検出</option>
+                                                    
+                                                <optgroup label="主要言語">
+                                                    <option value="eng_Latn">🇺🇸 英語 (English)</option>
+                                                    <option value="jpn_Jpan">🇯🇵 日本語 (日本語)</option>
+                                                    <option value="zho_Hans">🇨🇳 中国語簡体字 (简体中文)</option>
+                                                    <option value="zho_Hant">🇹🇼 中国語繁体字 (繁體中文)</option>
+                                                    <option value="kor_Hang">🇰🇷 韓国語 (한국어)</option>
+                                                    <option value="fra_Latn">🇫🇷 フランス語 (Français)</option>
+                                                    <option value="deu_Latn">🇩🇪 ドイツ語 (Deutsch)</option>
+                                                    <option value="spa_Latn">🇪🇸 スペイン語 (Español)</option>
+                                                    <option value="ita_Latn">🇮🇹 イタリア語 (Italiano)</option>
+                                                    <option value="por_Latn">🇵🇹 ポルトガル語 (Português)</option>
+                                                    <option value="rus_Cyrl">🇷🇺 ロシア語 (Русский)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="アジア言語">
+                                                    <option value="hin_Deva">🇮🇳 ヒンディー語 (हिन्दी)</option>
+                                                    <option value="ben_Beng">🇧🇩 ベンガル語 (বাংলা)</option>
+                                                    <option value="tha_Thai">🇹🇭 タイ語 (ไทย)</option>
+                                                    <option value="vie_Latn">🇻🇳 ベトナム語 (Tiếng Việt)</option>
+                                                    <option value="ind_Latn">🇮🇩 インドネシア語 (Indonesia)</option>
+                                                    <option value="urd_Arab">🇵🇰 ウルドゥー語 (اردو)</option>
+                                                    <option value="tel_Telu">🇮🇳 テルグ語 (తెలుగు)</option>
+                                                    <option value="tam_Taml">🇮🇳 タミル語 (தமிழ்)</option>
+                                                    <option value="mar_Deva">🇮🇳 マラーティー語 (मराठी)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="アフリカ言語">
+                                                    <option value="swh_Latn">🇰🇪 スワヒリ語 (Kiswahili)</option>
+                                                    <option value="amh_Ethi">🇪🇹 アムハラ語 (አማርኛ)</option>
+                                                    <option value="yor_Latn">🇳🇬 ヨルバ語 (Yorùbá)</option>
+                                                    <option value="hau_Latn">🇳🇬 ハウサ語 (Hausa)</option>
+                                                    <option value="som_Latn">🇸🇴 ソマリア語 (Soomaali)</option>
+                                                    <option value="ibo_Latn">🇳🇬 イボ語 (Igbo) ⭐</option>
+                                                    <option value="sna_Latn">🇿🇼 ショナ語 (chiShona) ⭐</option>
+                                                    <option value="nso_Latn">🇿🇦 北ソト語 (Sesotho sa Leboa) ⭐</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="中東言語">
+                                                    <option value="arb_Arab">🇸🇦 アラビア語 (العربية)</option>
+                                                    <option value="pes_Arab">🇮🇷 ペルシア語 (فارسی)</option>
+                                                    <option value="tur_Latn">🇹🇷 トルコ語 (Türkçe)</option>
+                                                    <option value="heb_Hebr">🇮🇱 ヘブライ語 (עברית)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="ヨーロッパ少数言語">
+                                                    <option value="cat_Latn">🇪🇸 カタルーニャ語 (Català)</option>
+                                                    <option value="glg_Latn">🇪🇸 ガリシア語 (Galego)</option>
+                                                    <option value="eus_Latn">🇪🇸 バスク語 (Euskara) ⭐</option>
+                                                    <option value="cym_Latn">🏴 ウェールズ語 (Cymraeg)</option>
+                                                    <option value="gle_Latn">🇮🇪 アイルランド語 (Gaeilge)</option>
+                                                    <option value="gla_Latn">🏴 スコットランド・ゲール語 (Gàidhlig) ⭐</option>
+                                                    <option value="isl_Latn">🇮🇸 アイスランド語 (Íslenska)</option>
+                                                    <option value="mlt_Latn">🇲🇹 マルタ語 (Malti)</option>
+                                                    <option value="ltz_Latn">🇱🇺 ルクセンブルク語 (Lëtzebuergesch) ⭐</option>
+                                                    <option value="afr_Latn">🇿🇦 アフリカーンス語 (Afrikaans)</option>
+                                                    <option value="pol_Latn">🇵🇱 ポーランド語 (Polski)</option>
+                                                    <option value="ukr_Cyrl">🇺🇦 ウクライナ語 (Українська)</option>
+                                                    <option value="nld_Latn">🇳🇱 オランダ語 (Nederlands)</option>
+                                                    <option value="swe_Latn">🇸🇪 スウェーデン語 (Svenska)</option>
+                                                    <option value="fin_Latn">🇫🇮 フィンランド語 (Suomi)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="南米先住民語">
+                                                    <option value="que_Latn">🇵🇪 ケチュア語 (Qhichwa) ⭐</option>
+                                                    <option value="aym_Latn">🇧🇴 アイマラ語 (Aymar) ⭐</option>
+                                                    <option value="grn_Latn">🇵🇾 グアラニー語 (Guaraní) ⭐</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="中央アジア・チベット文化圏">
+                                                    <option value="mon_Cyrl">🇲🇳 モンゴル語 (Монгол)</option>
+                                                    <option value="bod_Tibt">🇨🇳 チベット語 (བོད་ཡིག) ⭐</option>
+                                                    <option value="uig_Arab">🇨🇳 ウイグル語 (ئۇيغۇر) ⭐</option>
+                                                    <option value="kaz_Cyrl">🇰🇿 カザフ語 (Қазақ)</option>
+                                                    <option value="uzb_Latn">🇺🇿 ウズベク語 (O'zbek)</option>
+                                                    <option value="kir_Cyrl">🇰🇬 キルギス語 (Кыргыз) ⭐</option>
+                                                    <option value="tgk_Cyrl">🇹🇯 タジク語 (Тоҷикӣ) ⭐</option>
+                                                    <option value="aze_Latn">🇦🇿 アゼルバイジャン語 (Azərbaycan)</option>
+                                                    <option value="kat_Geor">🇬🇪 ジョージア語 (ქართული)</option>
+                                                    <option value="hye_Armn">🇦🇲 アルメニア語 (Հայերեն)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="その他の地域言語">
+                                                    <option value="mlg_Latn">🇲🇬 マダガスカル語 (Malagasy)</option>
+                                                </optgroup>
+                                            </select>
+                                            <div class="form-text">
+                                                ソース言語を指定すると、翻訳精度が向上します
+                                            </div>
+                                        </div>
+
+                                        <!-- 出力言語 -->
+                                        <div class="col-md-6">
+                                            <label for="targetLang" class="form-label">
+                                                <i class="fas fa-globe me-1"></i>出力言語
+                                            </label>
+                                            <select class="form-select" id="targetLang">
+                                                <optgroup label="主要言語">
+                                                    <option value="jpn_Jpan" selected>🇯🇵 日本語 (日本語)</option>
+                                                    <option value="eng_Latn">🇺🇸 英語 (English)</option>
+                                                    <option value="zho_Hans">🇨🇳 中国語簡体字 (简体中文)</option>
+                                                    <option value="zho_Hant">🇹🇼 中国語繁体字 (繁體中文)</option>
+                                                    <option value="kor_Hang">🇰🇷 韓国語 (한국어)</option>
+                                                    <option value="fra_Latn">🇫🇷 フランス語 (Français)</option>
+                                                    <option value="deu_Latn">🇩🇪 ドイツ語 (Deutsch)</option>
+                                                    <option value="spa_Latn">🇪🇸 スペイン語 (Español)</option>
+                                                    <option value="ita_Latn">🇮🇹 イタリア語 (Italiano)</option>
+                                                    <option value="por_Latn">🇵🇹 ポルトガル語 (Português)</option>
+                                                    <option value="rus_Cyrl">🇷🇺 ロシア語 (Русский)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="アジア言語">
+                                                    <option value="hin_Deva">🇮🇳 ヒンディー語 (हिन्दी)</option>
+                                                    <option value="ben_Beng">🇧🇩 ベンガル語 (বাংলা)</option>
+                                                    <option value="tha_Thai">🇹🇭 タイ語 (ไทย)</option>
+                                                    <option value="vie_Latn">🇻🇳 ベトナム語 (Tiếng Việt)</option>
+                                                    <option value="ind_Latn">🇮🇩 インドネシア語 (Indonesia)</option>
+                                                    <option value="urd_Arab">🇵🇰 ウルドゥー語 (اردو)</option>
+                                                    <option value="tel_Telu">🇮🇳 テルグ語 (తెలుగు)</option>
+                                                    <option value="tam_Taml">🇮🇳 タミル語 (தமிழ்)</option>
+                                                    <option value="mar_Deva">🇮🇳 マラーティー語 (मराठी)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="アフリカ言語">
+                                                    <option value="swh_Latn">🇰🇪 スワヒリ語 (Kiswahili)</option>
+                                                    <option value="amh_Ethi">🇪🇹 アムハラ語 (አማርኛ)</option>
+                                                    <option value="yor_Latn">🇳🇬 ヨルバ語 (Yorùbá)</option>
+                                                    <option value="hau_Latn">🇳🇬 ハウサ語 (Hausa)</option>
+                                                    <option value="som_Latn">🇸🇴 ソマリア語 (Soomaali)</option>
+                                                    <option value="ibo_Latn">🇳🇬 イボ語 (Igbo) ⭐</option>
+                                                    <option value="sna_Latn">🇿🇼 ショナ語 (chiShona) ⭐</option>
+                                                    <option value="nso_Latn">🇿🇦 北ソト語 (Sesotho sa Leboa) ⭐</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="中東言語">
+                                                    <option value="arb_Arab">🇸🇦 アラビア語 (العربية)</option>
+                                                    <option value="pes_Arab">🇮🇷 ペルシア語 (فارسی)</option>
+                                                    <option value="tur_Latn">🇹🇷 トルコ語 (Türkçe)</option>
+                                                    <option value="heb_Hebr">🇮🇱 ヘブライ語 (עברית)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="ヨーロッパ少数言語">
+                                                    <option value="cat_Latn">🇪🇸 カタルーニャ語 (Català)</option>
+                                                    <option value="glg_Latn">🇪🇸 ガリシア語 (Galego)</option>
+                                                    <option value="eus_Latn">🇪🇸 バスク語 (Euskara) ⭐</option>
+                                                    <option value="cym_Latn">🏴 ウェールズ語 (Cymraeg)</option>
+                                                    <option value="gle_Latn">🇮🇪 アイルランド語 (Gaeilge)</option>
+                                                    <option value="gla_Latn">🏴 スコットランド・ゲール語 (Gàidhlig) ⭐</option>
+                                                    <option value="isl_Latn">🇮🇸 アイスランド語 (Íslenska)</option>
+                                                    <option value="mlt_Latn">🇲🇹 マルタ語 (Malti)</option>
+                                                    <option value="ltz_Latn">🇱🇺 ルクセンブルク語 (Lëtzebuergesch) ⭐</option>
+                                                    <option value="afr_Latn">🇿🇦 アフリカーンス語 (Afrikaans)</option>
+                                                    <option value="pol_Latn">🇵🇱 ポーランド語 (Polski)</option>
+                                                    <option value="ukr_Cyrl">🇺🇦 ウクライナ語 (Українська)</option>
+                                                    <option value="nld_Latn">🇳🇱 オランダ語 (Nederlands)</option>
+                                                    <option value="swe_Latn">🇸🇪 スウェーデン語 (Svenska)</option>
+                                                    <option value="fin_Latn">🇫🇮 フィンランド語 (Suomi)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="南米先住民語">
+                                                    <option value="que_Latn">🇵🇪 ケチュア語 (Qhichwa) ⭐</option>
+                                                    <option value="aym_Latn">🇧🇴 アイマラ語 (Aymar) ⭐</option>
+                                                    <option value="grn_Latn">🇵🇾 グアラニー語 (Guaraní) ⭐</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="中央アジア・チベット文化圏">
+                                                    <option value="mon_Cyrl">🇲🇳 モンゴル語 (Монгол)</option>
+                                                    <option value="bod_Tibt">🇨🇳 チベット語 (བོད་ཡིག) ⭐</option>
+                                                    <option value="uig_Arab">🇨🇳 ウイグル語 (ئۇيغۇر) ⭐</option>
+                                                    <option value="kaz_Cyrl">🇰🇿 カザフ語 (Қазақ)</option>
+                                                    <option value="uzb_Latn">🇺🇿 ウズベク語 (O'zbek)</option>
+                                                    <option value="kir_Cyrl">🇰🇬 キルギス語 (Кыргыз) ⭐</option>
+                                                    <option value="tgk_Cyrl">🇹🇯 タジク語 (Тоҷикӣ) ⭐</option>
+                                                    <option value="aze_Latn">🇦🇿 アゼルバイジャン語 (Azərbaycan)</option>
+                                                    <option value="kat_Geor">🇬🇪 ジョージア語 (ქართული)</option>
+                                                    <option value="hye_Armn">🇦🇲 アルメニア語 (Հայերեն)</option>
+                                                </optgroup>
+                                                
+                                                <optgroup label="その他の地域言語">
+                                                    <option value="mlg_Latn">🇲🇬 マダガスカル語 (Malagasy)</option>
+                                                </optgroup>
+                                            </select>
+                                            <div class="form-text">
+                                                要約結果の言語を選択（70以上の言語に対応、⭐はGoogle翻訳非対応言語）
+                                            </div>
+                                        </div>
+
+                                        <!-- 要約モード（長文要約時のみ表示） -->
+                                        <div class="col-md-6" id="summaryLengthContainer">
+                                            <label for="summaryLength" class="form-label">
+                                                <i class="fas fa-compress-alt me-1"></i>要約モード
+                                            </label>
+                                            <select class="form-select" id="summaryLength">
+                                                <option value="short" selected>通常要約 (300-600字程度)</option>
+                                                <option value="long">詳細要約 (600-1000字程度)</option>
+                                            </select>
+                                            <small class="text-muted">
+                                                ※入力文章の長さにより変動します
+                                            </small>
+                                        </div>
+                                        
+                                        <!-- 展開モード（短文展開時のみ表示） -->
+                                        <div class="col-md-6" id="expandLengthContainer" style="display: none;">
+                                            <label for="expandLength" class="form-label">
+                                                <i class="fas fa-expand-alt me-1"></i>展開モード
+                                            </label>
+                                            <select class="form-select" id="expandLength">
+                                                <option value="300">簡易展開 (300字程度)</option>
+                                                <option value="500" selected>標準展開 (500字程度)</option>
+                                                <option value="800">詳細展開 (800字程度)</option>
+                                            </select>
+                                            <small class="text-muted">
+                                                ※入力は100文字以内が推奨です
+                                            </small>
+                                        </div>
+                                        
+                                        <!-- コード言語選択（コード解説時のみ表示） -->
+                                        <div class="col-md-6" id="codeLangContainer" style="display: none;">
+                                            <label for="codeLang" class="form-label">
+                                                <i class="fas fa-code me-1"></i>プログラミング言語
+                                            </label>
+                                            <select class="form-select" id="codeLang">
+                                                <option value="auto" selected>自動検出</option>
+                                                <option value="Python">Python</option>
+                                                <option value="JavaScript">JavaScript</option>
+                                                <option value="TypeScript">TypeScript</option>
+                                                <option value="Java">Java</option>
+                                                <option value="C">C</option>
+                                                <option value="C++">C++</option>
+                                                <option value="C#">C#</option>
+                                                <option value="Go">Go</option>
+                                                <option value="Rust">Rust</option>
+                                                <option value="Ruby">Ruby</option>
+                                                <option value="PHP">PHP</option>
+                                                <option value="Swift">Swift</option>
+                                                <option value="Kotlin">Kotlin</option>
+                                                <option value="SQL">SQL</option>
+                                                <option value="HTML/CSS">HTML/CSS</option>
+                                                <option value="Shell">Shell/Bash</option>
+                                            </select>
+                                            <small class="text-muted">
+                                                ※わからなければ「自動検出」でOK
+                                            </small>
+                                        </div>
+
+                                        <!-- 要約スタイル -->
+                                        <div class="col-md-6">
+                                            <label for="summaryStyle" class="form-label">
+                                                <i class="fas fa-palette me-1"></i>要約スタイル
+                                            </label>
+                                            <select class="form-select" id="summaryStyle">
+                                                <option value="balanced" selected>バランス型（文章形式）</option>
+                                                <option value="bullet">箇条書き型</option>
+                                            </select>
+                                            <small class="text-muted">
+                                                ※箇条書きは発表・レポート作成に最適
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 実行ボタン -->
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-primary btn-lg" id="processBtn">
+                            <i class="fas fa-play me-2"></i>
+                            <span id="process-text">要約実行</span>
+                        </button>
+                    </div>
+                    
+                    <!-- ⭐ 進捗表示エリア (リアルタイム更新) -->
+                    <div class="mt-3" id="progressArea" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>
+                                        <span id="progressMessage">処理中...</span>
+                                    </span>
+                                    <span class="badge bg-primary" id="progressPercent">0%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         id="progressBar" 
+                                         role="progressbar" 
+                                         style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 結果表示エリア -->
+            <div class="card shadow-sm mt-4" id="resultCard" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span id="result-title">処理結果</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 統計情報 -->
+                    <div class="row mb-3" id="stats">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted mb-1">実行時間</h6>
+                                <span class="h5" id="executionTime">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted mb-1">元の文字数</h6>
+                                <span class="h5" id="originalLength">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted mb-1">結果文字数</h6>
+                                <span class="h5" id="resultLength">-</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6 class="text-muted mb-1">比率</h6>
+                                <span class="h5" id="ratio">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 結果テキスト -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-file-text me-1"></i>
+                            <span id="result-label">処理結果</span>
+                        </label>
+                        <div class="form-control" id="resultText" style="min-height: 100px; background-color: #f8f9fa; white-space: pre-wrap; line-height: 1.8;"></div>
+                    </div>
+                    
+                    <!-- ⭐ キーワード表示エリア -->
+                    <div class="mb-3" id="keywordsArea" style="display: none;">
+                        <label class="form-label">
+                            <i class="fas fa-tags me-1"></i>抽出キーワード
+                        </label>
+                        <div id="keywordsContainer" class="d-flex flex-wrap gap-2">
+                            <!-- キーワードバッジがここに追加される -->
+                        </div>
+                    </div>
+
+                    <!-- アクション -->
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <button class="btn btn-primary w-100" onclick="copyResult()">
+                                <i class="fas fa-copy me-1"></i>
+                                <span id="copyBtnText">結果をコピー</span>
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="dropdown w-100">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-download me-1"></i>エクスポート
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="exportAs('txt'); return false;">
+                                        <i class="fas fa-file-alt me-2"></i>テキスト (.txt)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportAs('md'); return false;">
+                                        <i class="fab fa-markdown me-2"></i>Markdown (.md)
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportAs('html'); return false;">
+                                        <i class="fab fa-html5 me-2"></i>HTML (.html)
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportAs('json'); return false;">
+                                        <i class="fas fa-code me-2"></i>JSON (.json)
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-12">
+                            <button class="btn btn-success w-100" onclick="newProcess()">
+                                <i class="fas fa-plus me-1"></i>新しい処理
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 読み込み中 -->
+            <div class="card shadow-sm mt-4 fade-in" id="loadingCard" style="display: none;">
+                <div class="card-body text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">処理中...</span>
+                    </div>
+                    <h5 class="text-muted" id="loading-title">処理中...</h5>
+                    <p class="text-muted mb-3" id="loading-description">文章を処理しています</p>
+                    
+                    <!-- 経過時間表示 -->
+                    <div class="mb-3">
+                        <span class="badge bg-secondary fs-5 px-4 py-2" id="elapsedTimeDisplay">
+                            <i class="fas fa-clock me-2"></i><span id="elapsedTime">0</span>秒経過
+                        </span>
+                    </div>
+                    
+                    <!-- 処理進捗バー -->
+                    <div class="progress mb-3" style="height: 28px; border-radius: 14px; background: #e9ecef; border: 1px solid #dee2e6;">
+                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 100%; background: #0066cc; font-weight: 500; font-size: 14px; border-radius: 12px;">
+                            <span id="progressText" style="color: white;">処理中...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- ⭐ 処理ステップ詳細表示 -->
+                    <div class="processing-steps text-start mx-auto" style="max-width: 400px;">
+                        <div class="step-item mb-2" id="step-analyze">
+                            <i class="fas fa-circle-notch fa-spin text-muted me-2" id="step-analyze-icon"></i>
+                            <span class="text-muted" id="step-analyze-text">テキスト分析中...</span>
+                        </div>
+                        <div class="step-item mb-2" id="step-translate" style="display: none;">
+                            <i class="fas fa-circle text-muted me-2" id="step-translate-icon"></i>
+                            <span class="text-muted" id="step-translate-text">翻訳処理待機中</span>
+                        </div>
+                        <div class="step-item mb-2" id="step-summarize" style="display: none;">
+                            <i class="fas fa-circle text-muted me-2" id="step-summarize-icon"></i>
+                            <span class="text-muted" id="step-summarize-text">要約生成待機中</span>
+                        </div>
+                        <div class="step-item mb-2" id="step-format" style="display: none;">
+                            <i class="fas fa-circle text-muted me-2" id="step-format-icon"></i>
+                            <span class="text-muted" id="step-format-text">結果整形待機中</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 処理詳細メッセージ -->
+                    <p class="text-muted small mt-3 mb-0" id="processing-detail">
+                        AIが文章を理解しています...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- トースト通知エリア -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastContainer"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentMode = 'summarize';
+// ⭐ Socket.IOクライアント接続
+let socket = null;
+let currentTaskId = null;
+
+$(document).ready(function() {
+    // ⭐ Socket.IO接続を初期化
+    initializeSocket();
+    
+    // ⭐ 言語設定を復元
+    restoreLanguageSettings();
+    
+    // 初期設定
+    updateModeDisplay();
+    updateStats();
+    
+    // ⭐ 機能モード切り替え
+    $('input[name="featureMode"]').change(function() {
+        currentMode = $(this).val();
+        console.log('🔄 モード切り替え:', currentMode);
+        updateModeDisplay();
+    });
+    
+    // ⭐ 文字数カウンターのリアルタイム更新
+    $('#inputText').on('input', function() {
+        const length = $(this).val().length;
+        const maxChars = currentMode === 'expand' || currentMode === 'code' ? 5000 : 10000;
+        const percent = (length / maxChars * 100).toFixed(0);
+        
+        let badgeClass = 'bg-secondary';
+        if (percent > 90) badgeClass = 'bg-danger';
+        else if (percent > 70) badgeClass = 'bg-warning';
+        
+        $('#charCounter')
+            .removeClass('bg-secondary bg-warning bg-danger')
+            .addClass(badgeClass)
+            .html(`<i class="fas fa-text-width me-1"></i>${length.toLocaleString()}文字 (${percent}%)`);
+    });
+    
+    // ⭐ URL取得ボタン
+    $('#fetchUrlBtn').click(handleUrlFetch);
+    
+    // ⭐ 言語変更時に保存
+    $('#sourceLang, #targetLang, #summaryStyle, #summaryLength').change(function() {
+        saveLanguageSettings();
+    });
+    
+    // 文字数カウント
+    $('#inputText').on('input', function() {
+        const text = $(this).val();
+        $('#charCount').text(text.length);
+        
+        if (text.length > 9000) {
+            $('#charCount').addClass('text-warning');
+        } else if (text.length > 9500) {
+            $('#charCount').addClass('text-danger');
+        } else {
+            $('#charCount').removeClass('text-warning text-danger');
+        }
+    });
+    
+    // ⭐ Select2で言語選択を検索可能にする
+    $('#sourceLang, #targetLang').select2({
+        theme: 'bootstrap-5',
+        placeholder: '言語を検索...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "見つかりませんでした";
+            },
+            searching: function() {
+                return "検索中...";
+            }
+        }
+    });
+    
+    // Select2の変更時に設定を保存
+    $('#sourceLang, #targetLang').on('change', function() {
+        saveLanguageSettings();
+    });
+    
+    // ⭐ 処理実行（ドロップダウンの要約モードを使用）
+    $('#processBtn').click(function() {
+        const summaryMode = $('#summaryLength').val(); // 'short' or 'long'
+        handleProcess(summaryMode);
+    });
+});
+
+// ⭐ Socket.IO接続を初期化
+function initializeSocket() {
+    try {
+        socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5
+        });
+        
+        socket.on('connect', function() {
+            console.log('🔌 Socket.IO接続成功');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('🔌 Socket.IO接続切断');
+        });
+        
+        // ⭐ 進捗更新を受信
+        socket.on('progress_update', function(data) {
+            console.log('📡 進捗更新受信:', data);
+            updateProgressUI(data);
+        });
+        
+        socket.on('connect_error', function(error) {
+            console.error('Socket.IO接続エラー:', error);
+        });
+    } catch (e) {
+        console.error('Socket.IO初期化失敗:', e);
+    }
+}
+
+// ⭐ 進捗UIを更新
+function updateProgressUI(data) {
+    // タスクIDが一致する場合のみ更新
+    if (currentTaskId && data.task_id !== currentTaskId) {
+        return;
+    }
+    
+    const progressArea = $('#progressArea');
+    const progressBar = $('#progressBar');
+    const progressPercent = $('#progressPercent');
+    const progressMessage = $('#progressMessage');
+    
+    // 進捗エリアを表示
+    progressArea.show();
+    
+    // プログレスバーとメッセージを更新
+    progressBar.css('width', data.progress + '%');
+    progressPercent.text(data.progress + '%');
+    progressMessage.text(data.message);
+    
+    // ステージごとにアイコンを変更
+    const icons = {
+        'validate': 'fa-check-circle',
+        'prepare': 'fa-cog',
+        'summarize': 'fa-magic',
+        'translate': 'fa-language',
+        'process': 'fa-tasks',
+        'evaluate': 'fa-chart-line',
+        'save': 'fa-database',
+        'complete': 'fa-check'
+    };
+    
+    const icon = icons[data.stage] || 'fa-spinner fa-spin';
+    progressMessage.html(`<i class="fas ${icon} me-2"></i>${data.message}`);
+    
+    // 完了時の処理
+    if (data.progress >= 100 || data.stage === 'complete') {
+        setTimeout(function() {
+            progressArea.fadeOut();
+            currentTaskId = null;
+        }, 2000);
+    }
+}
+
+// ⭐ 言語設定を保存
+function saveLanguageSettings() {
+    const settings = {
+        sourceLang: $('#sourceLang').val(),
+        targetLang: $('#targetLang').val(),
+        summaryStyle: $('#summaryStyle').val(),
+        summaryLength: $('#summaryLength').val()
+    };
+    localStorage.setItem('languageSettings', JSON.stringify(settings));
+    console.log('💾 言語設定を保存しました:', settings);
+}
+
+// ⭐ 言語設定を復元
+function restoreLanguageSettings() {
+    const savedSettings = localStorage.getItem('languageSettings');
+    if (savedSettings) {
+        try {
+            const settings = JSON.parse(savedSettings);
+            if (settings.sourceLang) $('#sourceLang').val(settings.sourceLang);
+            if (settings.targetLang) $('#targetLang').val(settings.targetLang);
+            if (settings.summaryStyle) $('#summaryStyle').val(settings.summaryStyle);
+            if (settings.summaryLength) $('#summaryLength').val(settings.summaryLength);
+            console.log('✅ 言語設定を復元しました:', settings);
+        } catch (e) {
+            console.error('言語設定の復元に失敗:', e);
+        }
+    }
+}
+
+function updateModeDisplay() {
+    const modes = {
+        summarize: {
+            title: '長文要約',
+            description: '自動要約サービス',
+            inputLabel: '要約対象テキスト',
+            processText: '要約実行',
+            resultTitle: '要約結果',
+            resultLabel: '生成された要約',
+            loadingTitle: '要約生成中...',
+            loadingDesc: '文章を分析しています',
+            maxChars: 10000
+        },
+        expand: {
+            title: '短文展開サービス',
+            description: '短文を詳細で豊かな表現に展開',
+            inputLabel: '展開対象テキスト（短文）',
+            processText: '文章展開',
+            resultTitle: '展開結果',
+            resultLabel: '展開された文章',
+            loadingTitle: '文章展開中...',
+            loadingDesc: '文章を詳細化しています',
+            maxChars: 5000
+        },
+        url: {
+            title: 'URL記事要約',
+            description: 'Web記事を自動取得して要約',
+            inputLabel: '記事内容（自動取得）',
+            processText: 'URL要約',
+            resultTitle: '記事要約結果',
+            resultLabel: '生成された要約',
+            loadingTitle: '記事要約中...',
+            loadingDesc: 'Web記事を取得して要約しています',
+            maxChars: 10000
+        }
+        /* ⭐ コード解説機能は一時停止
+        ,code: {
+            title: 'コード解説',
+            description: 'プログラミングコードをわかりやすく解説',
+            inputLabel: '解説対象のコード',
+            processText: 'コード解説',
+            resultTitle: 'コード解説結果',
+            resultLabel: '生成された解説',
+            loadingTitle: 'コード解説中...',
+            loadingDesc: 'コードを分析しています',
+            maxChars: 5000
+        }
+        */
+    };
+    
+    const mode = modes[currentMode];
+    
+    console.log('📱 updateModeDisplay:', currentMode, mode);
+    
+    // ボタンテキスト更新
+    $('#process-text').text(mode.processText);
+    $('#result-title').text(mode.resultTitle);
+    $('#result-label').text(mode.resultLabel);  // ⭐ 結果ラベルも更新
+    
+    // ⭐ 要約モード/展開モードの切り替え
+    if (currentMode === 'expand') {
+        // 短文展開モード
+        $('#summaryLengthContainer').hide();
+        $('#expandLengthContainer').show();
+        $('#codeLangContainer').hide();
+        $('#summaryStyle').closest('.col-md-6').hide();
+        $('#sourceLangContainer').show(); // 入力言語表示
+    /* ⭐ コード解説機能は一時停止
+    } else if (currentMode === 'code') {
+        // コード解説モード
+        $('#summaryLengthContainer').hide();
+        $('#expandLengthContainer').hide();
+        $('#codeLangContainer').show();
+        $('#summaryStyle').closest('.col-md-6').hide();
+        $('#sourceLangContainer').hide(); // ⭐ 入力言語非表示（自動検出）
+    */
+    } else if (currentMode === 'url') {
+        // URL要約モード - 入力言語は自動検出
+        $('#summaryLengthContainer').show();
+        $('#expandLengthContainer').hide();
+        $('#codeLangContainer').hide();
+        $('#summaryStyle').closest('.col-md-6').show();
+        $('#sourceLangContainer').hide(); // ⭐ URL要約は言語自動検出
+    } else {
+        // 長文要約モード
+        $('#summaryLengthContainer').show();
+        $('#expandLengthContainer').hide();
+        $('#codeLangContainer').hide();
+        $('#summaryStyle').closest('.col-md-6').show();
+        $('#sourceLangContainer').show(); // 入力言語表示
+    }
+    
+    // ⭐ 入力ラベル更新
+    $('label[for="inputText"]').html('<i class="fas fa-edit me-1"></i>' + mode.inputLabel);
+    
+    // 表示/非表示切り替え
+    if (currentMode === 'url') {
+        console.log('🌐 URL要約モード - URL欄表示、PDFとテキスト非表示');
+        $('#urlInputArea').show();
+        $('#pdf-drop-zone').hide();
+        $('#textInputArea').hide(); // テキストエリア全体を非表示
+        $('#processBtn').hide(); // URL要約はURL欄の「要約」ボタンを使用
+    } else {
+        console.log('通常モード - PDFとテキスト表示、URL欄非表示');
+        $('#urlInputArea').hide();
+        $('#pdf-drop-zone').show();
+        $('#textInputArea').show(); // テキストエリア全体を表示
+        $('#processBtn').show(); // 要約実行ボタンを表示
+    }
+}
+
+function handleFileUpload() {
+    const fileInput = $('#fileInput')[0];
+    if (!fileInput.files[0]) {
+        showToast('ファイルを選択してください', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    $.ajax({
+        url: '/api/upload',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                $('#inputText').val(response.text);
+                $('#charCount').text(response.text.length);
+                alert(`ファイル "${response.filename}" を読み込みました`);
+            } else {
+                alert('エラー: ' + response.error);
+            }
+        },
+        error: function() {
+            alert('ファイルアップロードに失敗しました');
+        }
+    });
+}
+
+function handleUrlFetch() {
+    const url = $('#urlInput').val().trim();
+    if (!url) {
+        showToast('URLを入力してください', 'error');
+        return;
+    }
+
+    $('#fetchUrlBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>取得中...');
+    
+    // ⭐ ローディングカード表示
+    $('#loadingCard').show();
+    $('#resultCard').hide();
+    
+    // ⭐ 進捗表示を開始
+    $('#progressArea').show();
+    $('#progressBar').css('width', '0%');
+    $('#progressPercent').text('0%');
+    $('#progressMessage').html('<i class="fas fa-spinner fa-spin me-2"></i>URLからコンテンツを取得中...');
+    
+    // ⭐ 進捗バーアニメーションを開始
+    startProgressSimulation();
+
+    // ⭐ URL要約を実行（取得と要約を一度に行う）
+    $.post('/api/url-summarize', { 
+        url: url, 
+        summary_mode: $('#summaryLength').val() || 'short',
+        source_lang: $('#sourceLang').val() || 'auto',
+        target_lang: $('#targetLang').val() || 'jpn_Jpan',
+        style: $('#summaryStyle').val() || 'balanced'
+    })
+        .done(function(response) {
+            // ⭐ 進捗バー完了
+            completeProgress();
+            
+            if (response.success) {
+                // ⭐ 結果を直接表示
+                displayResult({
+                    success: true,
+                    summary: response.summary,
+                    original_length: response.original_length,
+                    summary_length: response.summary_length,
+                    compression_ratio: response.compression_ratio,
+                    execution_time: response.execution_time,
+                    model_used: response.model_used,
+                    quality_score: response.confidence * 100,
+                    title: response.title
+                });
+                showToast('✅ URL記事を要約しました!', 'success');
+            } else {
+                showToast('エラー: ' + (response.error || '不明なエラー'), 'error');
+            }
+        })
+        .fail(function(xhr, status, error) {
+            showToast('URL要約に失敗しました: ' + error, 'error');
+        })
+        .always(function() {
+            // ⭐ ローディング画面を非表示
+            $('#loadingCard').hide();
+            $('#fetchUrlBtn').prop('disabled', false).html('<i class="fas fa-magic me-1"></i>要約');
+            resetProgress();  // ⭐ 状態をリセット
+        });
+}
+
+function handleProcess(summaryMode = 'short') {
+    let data = {};
+    let endpoint = '';
+    
+    // ⭐ 進捗表示を開始
+    $('#progressArea').show();
+    $('#progressBar').css('width', '0%');
+    $('#progressPercent').text('0%');
+    $('#progressMessage').html('<i class="fas fa-spinner fa-spin me-2"></i>準備中...');
+    
+    if (currentMode === 'url') {
+        const url = $('#urlInput').val().trim();
+        if (!url) {
+            showToast('URLを入力してください', 'error');
+            $('#progressArea').hide();
+            return;
+        }
+        data = {
+            url: url,
+            summary_mode: summaryMode,  // ボタンから渡されたモード
+            source_lang: $('#sourceLang').val() || 'auto',
+            target_lang: $('#targetLang').val() || 'jpn_Jpan',
+            style: $('#summaryStyle').val() || 'balanced',
+            model_type: $('#modelType').val() || 'huggingface'  // ⭐ モデルタイプ
+        };
+        endpoint = '/api/url-summarize';
+    } else {
+        const text = $('#inputText').val().trim();
+        if (!text) {
+            showToast('テキストを入力してください', 'error');
+            $('#progressArea').hide();
+            return;
+        }
+        
+        if (currentMode === 'summarize') {
+            data = {
+                text: text,
+                summary_mode: summaryMode,  // ボタンから渡されたモード
+                source_lang: $('#sourceLang').val() || 'auto',  // 入力言語
+                target_lang: $('#targetLang').val() || 'jpn_Jpan',  // 出力言語
+                style: $('#summaryStyle').val() || 'balanced',  // ⭐ スタイル
+                model_type: $('#modelType').val() || 'huggingface'  // ⭐ モデルタイプ
+            };
+            endpoint = '/api/summarize';
+        } else if (currentMode === 'expand') {
+            // ⭐ 入力文字数チェック
+            if (text.length > 300) {
+                showToast('⚠️ 展開元テキストは300文字以内にしてください（現在: ' + text.length + '文字）', 'warning');
+                $('#processBtn').prop('disabled', false);
+                return;
+            }
+            
+            data = {
+                text: text,
+                target_length: parseInt($('#expandLength').val()) || 500,  // ⭐ 展開モードの文字数
+                source_lang: $('#sourceLang').val() || 'auto',  // ⭐ 入力言語を追加
+                target_lang: $('#targetLang').val() || 'jpn_Jpan'  // ⭐ 出力言語を追加
+            };
+            endpoint = '/api/expand';
+        /* ⭐ コード解説機能は一時停止
+        } else if (currentMode === 'code') {
+            // ⭐ コード解説モード
+            data = {
+                code: text,
+                language: $('#codeLang').val() || 'auto',
+                target_lang: $('#targetLang').val() || 'jpn_Jpan'
+            };
+            endpoint = '/api/explain-code';
+        */
+        }
+    }
+    
+    // UI更新
+    $('#resultCard').hide();
+    $('#processBtn').prop('disabled', true);
+    
+    // ⭐ ローディングカード表示
+    $('#loadingCard').show();
+    
+    // ⭐ 進捗バーを開始
+    startProgressSimulation();
+    
+    // API実行
+    $.post(endpoint, data)
+        .done(function(response) {
+            completeProgress();  // ⭐ 進捗バー完了
+            
+            // ⭐ タスクIDを保存（進捗追跡用）
+            if (response.task_id) {
+                currentTaskId = response.task_id;
+            }
+            
+            if (response.success) {
+                displayResult(response);
+                updateStats();
+                showToast('✅ 処理が完了しました!', 'success');
+            } else {
+                alert('エラー: ' + response.error);
+                showToast('❌ エラーが発生しました', 'error');
+            }
+        })
+        .fail(function() {
+            // ⭐ エラー時もタイマー停止
+            if (window.elapsedTimeInterval) {
+                clearInterval(window.elapsedTimeInterval);
+                window.elapsedTimeInterval = null;
+            }
+            $('#progressArea').hide();
+            alert('処理に失敗しました');
+            showToast('❌ 処理に失敗しました', 'error');
+        })
+        .always(function() {
+            $('#loadingCard').hide();
+            $('#processBtn').prop('disabled', false);
+            resetProgress();  // ⭐ 状態をリセット
+        });
+}
+
+function displayResult(response) {
+    if (currentMode === 'summarize' || currentMode === 'url') {
+        // 改行を<br>タグに変換してHTMLとして表示
+        const formattedSummary = response.summary.replace(/\n/g, '<br>');
+        $('#resultText').html(formattedSummary);
+        $('#originalLength').text(response.original_length);
+        $('#resultLength').text(response.summary_length);
+        $('#ratio').text((response.compression_ratio * 100).toFixed(1) + '%');
+    } else if (currentMode === 'expand') {
+        // 改行を<br>タグに変換してHTMLとして表示
+        const formattedExpanded = response.expanded_text.replace(/\n/g, '<br>');
+        $('#resultText').html(formattedExpanded);
+        $('#originalLength').text(response.original_length);
+        $('#resultLength').text(response.expanded_length);
+        $('#ratio').text((response.expansion_ratio).toFixed(1) + 'x');
+    } else if (currentMode === 'code') {
+        // ⭐ コード解説モード
+        const formattedExplanation = response.explanation.replace(/\n/g, '<br>');
+        $('#resultText').html(formattedExplanation);
+        $('#originalLength').text(response.code_length + ' chars');
+        $('#resultLength').text(response.explanation_length + ' chars');
+        $('#ratio').text(response.detected_language || '-');
+    }
+    
+    // ⭐ 実行時間の安全な表示（null/undefined対応）
+    const execTime = response.execution_time;
+    if (execTime !== null && execTime !== undefined && !isNaN(execTime)) {
+        $('#executionTime').text(execTime.toFixed(2) + 's');
+    } else {
+        $('#executionTime').text('-');
+    }
+    
+    $('#resultCard').show();
+    
+    $('#resultCard')[0].scrollIntoView({behavior: 'smooth'});
+}
+
+function copyResult() {
+    const resultText = $('#resultText').text();
+    const copyBtn = $('#copyBtnText');
+    
+    navigator.clipboard.writeText(resultText).then(() => {
+        // ⭐ 成功フィードバック
+        copyBtn.html('<i class="fas fa-check me-1"></i>コピーしました!');
+        $('#copyBtnText').closest('button').removeClass('btn-primary').addClass('btn-success');
+        
+        // 2秒後に元に戻す
+        setTimeout(() => {
+            copyBtn.html('結果をコピー');
+            $('#copyBtnText').closest('button').removeClass('btn-success').addClass('btn-primary');
+        }, 2000);
+    }).catch(err => {
+        alert('コピーに失敗しました: ' + err);
+    });
+}
+
+// ⭐ エクスポート機能 (複数形式対応)
+function exportAs(format) {
+    const resultText = $('#resultText').text();
+    const originalText = $('#inputText').val();
+    const timestamp = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+    let content, mimeType, extension;
+    
+    switch(format) {
+        case 'txt':
+            content = resultText;
+            mimeType = 'text/plain';
+            extension = 'txt';
+            break;
+            
+        case 'md':
+            content = `# 要約結果\n\n**生成日時**: ${new Date().toLocaleString('ja-JP')}\n\n## 要約\n\n${resultText}\n\n---\n\n## 元のテキスト\n\n${originalText}`;
+            mimeType = 'text/markdown';
+            extension = 'md';
+            break;
+            
+        case 'html':
+            content = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>要約結果 - recapisure</title>
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #2c3e50; }
+        .summary { background: #f8f9fa; padding: 20px; border-left: 4px solid #3498db; }
+        .meta { color: #7f8c8d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>要約結果</h1>
+    <p class="meta">生成日時: ${new Date().toLocaleString('ja-JP')}</p>
+    <div class="summary">
+        <h2>要約</h2>
+        <p>${resultText.replace(/\n/g, '<br>')}</p>
+    </div>
+    <hr>
+    <h2>元のテキスト</h2>
+    <p>${originalText.replace(/\n/g, '<br>')}</p>
+    <footer>
+        <p class="meta">Generated by <a href="https://github.com/TT0144/recapisure">recapisure</a></p>
+    </footer>
+</body>
+</html>`;
+            mimeType = 'text/html';
+            extension = 'html';
+            break;
+            
+        case 'json':
+            const jsonData = {
+                timestamp: new Date().toISOString(),
+                mode: currentMode,
+                original_text: originalText,
+                summary: resultText,
+                stats: {
+                    original_length: $('#originalLength').text(),
+                    result_length: $('#resultLength').text(),
+                    ratio: $('#ratio').text(),
+                    execution_time: $('#executionTime').text()
+                },
+                settings: {
+                    source_lang: $('#sourceLang').val(),
+                    target_lang: $('#targetLang').val(),
+                    style: $('#summaryStyle').val(),
+                    mode: $('#summaryLength').val()
+                }
+            };
+            content = JSON.stringify(jsonData, null, 2);
+            mimeType = 'application/json';
+            extension = 'json';
+            break;
+    }
+    
+    const blob = new Blob([content], {type: mimeType});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recapisure_${currentMode}_${timestamp}.${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    // ⭐ ダウンロード成功のフィードバック
+    showToast(`✅ ${extension.toUpperCase()}形式でエクスポートしました!`);
+}
+
+function saveResult() {
+    // 後方互換性のため残す
+    exportAs('txt');
+}
+
+function newProcess() {
+    $('#inputText').val('');
+    $('#inputUrl').val('');
+    $('#charCount').text('0');
+    $('#resultCard').hide();
+    $('#fileInput').val('');
+    if (currentMode === 'url') {
+        $('#inputUrl').focus();
+    } else {
+        $('#inputText').focus();
+    }
+}
+
+function updateStats() {
+    $.get('/api/stats', function(data) {
+        $('#totalOperations').text(data.total_operations);
+        $('#totalChars').text((data.total_text_processed / 1000).toFixed(1) + 'K');
+        $('#avgTime').text(data.average_execution_time.toFixed(1) + 's');
+    });
+}
+
+// ⭐ トースト通知を表示
+function showToast(message, type = 'success') {
+    const toastId = 'toast-' + Date.now();
+    const iconMap = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle',
+        warning: 'fa-exclamation-triangle'
+    };
+    const bgMap = {
+        success: 'bg-success',
+        error: 'bg-danger',
+        info: 'bg-info',
+        warning: 'bg-warning'
+    };
+    
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgMap[type]} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas ${iconMap[type]} me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    $('#toastContainer').append(toastHtml);
+    const toastElement = new bootstrap.Toast(document.getElementById(toastId), {
+        animation: true,
+        autohide: true,
+        delay: 3000
+    });
+    toastElement.show();
+    
+    // トースト非表示後に削除
+    document.getElementById(toastId).addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// ⭐ フィードバックパネルの表示/非表示切り替え
+function toggleFeedback() {
+    const panel = $('#feedbackPanel');
+    if (panel.is(':visible')) {
+        panel.slideUp(300);
+    } else {
+        panel.slideDown(300);
+        // フィードバックパネルまでスクロール
+        setTimeout(() => {
+            panel[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 350);
+    }
+}
+
+// ⭐ 進捗バーのシミュレーション
+let progressInterval;
+let currentProgress = 0;
+let statusMessages = [];
+
+function addStatusMessage(message, isDebug = false) {
+    const timestamp = new Date().toLocaleTimeString('ja-JP');
+    const icon = getIconForMessage(message);
+    
+    // ユーザー向けメッセージ
+    const userMessage = `
+        <div class="mb-1 fade-in">
+            <span class="text-muted">[${timestamp}]</span>
+            <i class="${icon} me-1"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    $('#statusLog').append(userMessage);
+    
+    // デバッグログ
+    if (isDebug) {
+        const debugMessage = `<div class="text-success">[${timestamp}] ${message}</div>`;
+        $('#debugLog').append(debugMessage);
+    }
+    
+    // 自動スクロール
+    $('#statusLog').scrollTop($('#statusLog')[0].scrollHeight);
+    $('#debugLog').scrollTop($('#debugLog')[0].scrollHeight);
+}
+
+function getIconForMessage(message) {
+    if (message.includes('完了') || message.includes('成功')) return 'fas fa-check-circle text-success';
+    if (message.includes('エラー') || message.includes('失敗')) return 'fas fa-times-circle text-danger';
+    if (message.includes('翻訳')) return 'fas fa-language text-primary';
+    if (message.includes('要約')) return 'fas fa-compress text-info';
+    if (message.includes('モデル') || message.includes('ロード')) return 'fas fa-download text-warning';
+    if (message.includes('チャンク') || message.includes('分割')) return 'fas fa-cut text-secondary';
+    return 'fas fa-spinner fa-spin text-primary';
+}
+
+function startProgressSimulation() {
+    currentProgress = 0;
+    
+    // ローディングメッセージをリセット
+    $('#loading-title').text('処理中...');
+    $('#loading-description').text('文章を分析しています');
+    
+    // ⭐ 処理ステップを初期化・表示
+    initProcessingSteps();
+    
+    // 経過時間カウンターを開始
+    window.loadingStartTime = Date.now();
+    window.elapsedTimeInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - window.loadingStartTime) / 1000);
+        $('#elapsedTime').text(elapsed);
+        
+        // ⭐ 時間経過に応じてステップを更新
+        updateProcessingStepsByTime(elapsed);
+        
+        // 30秒超えたら警告色に変更
+        if (elapsed >= 30 && elapsed < 60) {
+            $('#elapsedTimeDisplay').removeClass('bg-secondary bg-danger').addClass('bg-warning');
+        } else if (elapsed >= 60) {
+            $('#elapsedTimeDisplay').removeClass('bg-secondary bg-warning').addClass('bg-danger');
+        }
+    }, 1000);
+    
+    // プログレスバーを100%（インデターミネート表示）に設定
+    $('#progressBar').css('width', '100%');
+    $('#progressText').text('処理中...');
+}
+
+// ⭐ 処理ステップ初期化
+function initProcessingSteps() {
+    const sourceLang = $('#sourceLang').val();
+    const targetLang = $('#targetLang').val();
+    const needsTranslation = sourceLang !== targetLang && sourceLang !== 'auto';
+    
+    // 全ステップを表示
+    $('#step-analyze, #step-translate, #step-summarize, #step-format').show();
+    
+    // アイコンと状態をリセット
+    resetStepState('analyze', 'テキスト分析中...', true);
+    
+    if (needsTranslation || currentMode === 'url') {
+        resetStepState('translate', '翻訳処理待機中', false);
+    } else {
+        $('#step-translate').hide();
+    }
+    
+    resetStepState('summarize', currentMode === 'expand' ? '文章展開待機中' : '要約生成待機中', false);
+    resetStepState('format', '結果整形待機中', false);
+    
+    // 詳細メッセージ
+    $('#processing-detail').text('AIが文章を理解しています...');
+}
+
+// ⭐ ステップ状態をリセット
+function resetStepState(stepName, text, isActive) {
+    const iconEl = $(`#step-${stepName}-icon`);
+    const textEl = $(`#step-${stepName}-text`);
+    
+    if (isActive) {
+        iconEl.removeClass('fa-circle fa-check-circle text-success text-muted')
+              .addClass('fa-circle-notch fa-spin text-primary');
+        textEl.removeClass('text-muted text-success').addClass('text-primary fw-bold');
+    } else {
+        iconEl.removeClass('fa-circle-notch fa-spin fa-check-circle text-primary text-success')
+              .addClass('fa-circle text-muted');
+        textEl.removeClass('text-primary text-success fw-bold').addClass('text-muted');
+    }
+    textEl.text(text);
+}
+
+// ⭐ ステップを完了状態に
+function completeStep(stepName, text) {
+    const iconEl = $(`#step-${stepName}-icon`);
+    const textEl = $(`#step-${stepName}-text`);
+    
+    iconEl.removeClass('fa-circle fa-circle-notch fa-spin text-muted text-primary')
+          .addClass('fa-check-circle text-success');
+    textEl.removeClass('text-muted text-primary fw-bold').addClass('text-success');
+    textEl.text(text);
+}
+
+// ⭐ ステップをアクティブに
+function activateStep(stepName, text) {
+    const iconEl = $(`#step-${stepName}-icon`);
+    const textEl = $(`#step-${stepName}-text`);
+    
+    iconEl.removeClass('fa-circle fa-check-circle text-muted text-success')
+          .addClass('fa-circle-notch fa-spin text-primary');
+    textEl.removeClass('text-muted text-success').addClass('text-primary fw-bold');
+    textEl.text(text);
+}
+
+// ⭐ 時間経過に応じてステップを更新
+function updateProcessingStepsByTime(elapsed) {
+    const detailMessages = {
+        analyze: [
+            'テキストの構造を解析中...',
+            '言語を自動検出中...',
+            '文章の意味を理解中...',
+            'キーワードを抽出中...'
+        ],
+        translate: [
+            '翻訳モデルを準備中...',
+            '翻訳処理を実行中...',
+            '翻訳結果を検証中...'
+        ],
+        summarize: [
+            '重要な情報を抽出中...',
+            '要約文を生成中...',
+            '文章の一貫性を確認中...'
+        ],
+        expand: [
+            'コンテキストを分析中...',
+            '詳細な説明を生成中...',
+            '表現を豊かにしています...'
+        ],
+        format: [
+            '出力形式を整形中...',
+            '最終チェック中...'
+        ]
+    };
+    
+    // 経過時間に応じてステップを進める
+    if (elapsed < 3) {
+        $('#processing-detail').text(detailMessages.analyze[elapsed % detailMessages.analyze.length]);
+    } else if (elapsed < 8) {
+        completeStep('analyze', 'テキスト分析完了 ✓');
+        if ($('#step-translate').is(':visible')) {
+            activateStep('translate', '翻訳処理中...');
+            $('#processing-detail').text(detailMessages.translate[(elapsed - 3) % detailMessages.translate.length]);
+        } else {
+            const msgs = currentMode === 'expand' ? detailMessages.expand : detailMessages.summarize;
+            activateStep('summarize', currentMode === 'expand' ? '文章展開中...' : '要約生成中...');
+            $('#processing-detail').text(msgs[(elapsed - 3) % msgs.length]);
+        }
+    } else if (elapsed < 15) {
+        completeStep('analyze', 'テキスト分析完了 ✓');
+        if ($('#step-translate').is(':visible')) {
+            completeStep('translate', '翻訳処理完了 ✓');
+        }
+        const msgs = currentMode === 'expand' ? detailMessages.expand : detailMessages.summarize;
+        activateStep('summarize', currentMode === 'expand' ? '文章展開中...' : '要約生成中...');
+        $('#processing-detail').text(msgs[(elapsed - 8) % msgs.length]);
+    } else {
+        completeStep('analyze', 'テキスト分析完了 ✓');
+        if ($('#step-translate').is(':visible')) {
+            completeStep('translate', '翻訳処理完了 ✓');
+        }
+        completeStep('summarize', currentMode === 'expand' ? '文章展開完了 ✓' : '要約生成完了 ✓');
+        activateStep('format', '結果を整形中...');
+        $('#processing-detail').text(detailMessages.format[(elapsed - 15) % detailMessages.format.length]);
+    }
+}
+
+function updateProgress(percent, message, step) {
+    currentProgress = percent;
+    $('#loading-description').text(message);
+}
+
+function completeProgress() {
+    // ⭐ 経過時間タイマーを停止
+    if (window.elapsedTimeInterval) {
+        clearInterval(window.elapsedTimeInterval);
+        window.elapsedTimeInterval = null;
+    }
+    
+    // ⭐ 全ステップを完了状態に
+    completeStep('analyze', 'テキスト分析完了 ✓');
+    if ($('#step-translate').is(':visible')) {
+        completeStep('translate', '翻訳処理完了 ✓');
+    }
+    completeStep('summarize', currentMode === 'expand' ? '文章展開完了 ✓' : '要約生成完了 ✓');
+    completeStep('format', '結果整形完了 ✓');
+    $('#processing-detail').text('🎉 処理が完了しました！');
+    
+    // 完了表示
+    const totalTime = Math.floor((Date.now() - window.loadingStartTime) / 1000);
+    $('#progressText').text('完了!');
+    $('#progressBar').removeClass('progress-bar-animated').css('background', '#28a745');
+    $('#elapsedTimeDisplay').removeClass('bg-warning bg-danger').addClass('bg-success');
+    $('#elapsedTime').text(totalTime);
+    
+    setTimeout(() => {
+        resetProgress();
+    }, 1000);
+}
+
+function resetProgress() {
+    currentProgress = 0;
+    $('#progressBar').css('width', '0%').addClass('progress-bar-animated').css('background', '#0066cc');
+    $('#progressText').text('0%');
+    $('#elapsedTime').text('0');
+    $('#elapsedTimeDisplay').removeClass('bg-success bg-warning bg-danger').addClass('bg-primary');
+    
+    // タイマーが残っていたらクリア
+    if (window.elapsedTimeInterval) {
+        clearInterval(window.elapsedTimeInterval);
+        window.elapsedTimeInterval = null;
+    }
+}
+
+// ⭐ AI品質メトリクス表示（就活アピール用）
+function displayQualityMetrics(metrics) {
+    if (!metrics) return;
+    
+    // メトリクスパネルを表示
+    $('#qualityMetrics').fadeIn();
+    
+    // スコア表示とプログレスバー
+    const confidence = metrics.confidence_score || 0;
+    const coverage = metrics.information_coverage || metrics.keyword_coverage || 0;  // ⭐ 情報網羅率を優先
+    const naturalness = metrics.naturalness || 0;
+    const compression = metrics.compression_ratio || 0;
+    
+    $('#confidenceScore').text(confidence.toFixed(1) + '%');
+    $('#confidenceBar').css('width', confidence + '%');
+    
+    $('#coverageScore').text(coverage.toFixed(1) + '%');
+    $('#coverageBar').css('width', coverage + '%');
+    
+    $('#naturalnessScore').text(naturalness.toFixed(1) + '%');
+    $('#naturalnessBar').css('width', naturalness + '%');
+    
+    $('#compressionScore').text(compression.toFixed(1) + '%');
+    $('#compressionBar').css('width', compression + '%');
+    
+    // 品質レベルバッジ
+    const qualityColor = metrics.quality_color || 'secondary';
+    const qualityLevel = metrics.quality_level || '標準';
+    $('#qualityBadge')
+        .removeClass('bg-success bg-info bg-warning bg-danger bg-secondary')
+        .addClass('bg-' + qualityColor)
+        .text(qualityLevel);
+    
+    // パフォーマンス情報
+    if (metrics.performance) {
+        $('#performanceLevel').text(metrics.performance.performance_level);
+        $('#performanceIcon').text(metrics.performance.performance_icon);
+    }
+    
+    // モデル情報
+    if (metrics.model_info) {
+        const modelText = metrics.model_info.type + ' (' + metrics.model_info.optimization + ')';
+        $('#modelName').text(modelText);
+    }
+    
+    // キーワード表示
+    if (metrics.top_keywords && metrics.top_keywords.length > 0) {
+        const keywordBadges = metrics.top_keywords.map(kw => 
+            `<span class="badge bg-secondary me-1">${kw}</span>`
+        ).join('');
+        $('#topKeywords').html(keywordBadges);
+    }
+    
+    // アニメーション効果
+    setTimeout(() => {
+        $('.progress-bar').addClass('progress-bar-animated');
+    }, 100);
+}
+
+// グローバル関数（ナビゲーションから呼び出し）
+function setMode(mode) {
+    $(`#mode-${mode}`).prop('checked', true);
+    currentMode = mode;
+    updateModeDisplay();
+}
+
+// 🎓 Apertus学習システム - フィードバック機能
+
+// タスクID生成
+function generateTaskId() {
+    return 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// スコア表示更新
+function updateScoreDisplay(sliderId, displayId) {
+    const value = parseFloat(document.getElementById(sliderId).value);
+    document.getElementById(displayId).textContent = value.toFixed(1);
+}
+
+// フィードバック送信
+function submitFeedback() {
+    if (!window.lastResult) {
+        showToast('処理結果がありません', 'error');
+        return;
+    }
+
+    const feedbackData = {
+        task_id: window.lastResult.taskId,
+        original_text: window.lastResult.originalText,
+        result_text: window.lastResult.resultText,
+        task_type: window.lastResult.taskType,
+        model_used: window.lastResult.modelUsed,
+        user_score: parseFloat($('#userScore').val()),
+        accuracy_score: parseFloat($('#accuracyScore').val()),
+        fluency_score: parseFloat($('#fluencyScore').val()),
+        completeness_score: parseFloat($('#completenessScore').val()),
+        comment: $('#feedbackComment').val().trim()
+    };
+
+    // 送信ボタンを無効化
+    const submitBtn = $('#feedbackPanel button[onclick="submitFeedback()"]');
+    const originalText = submitBtn.html();
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>送信中...');
+
+    $.ajax({
+        url: '/api/feedback',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(feedbackData),
+        success: function(response) {
+            if (response.success) {
+                $('#feedbackSuccess').show();
+                showToast('フィードバックを送信しました！AIが学習します。', 'success');
+                
+                // フォームをリセット
+                $('#userScore, #accuracyScore, #fluencyScore, #completenessScore').val(3.0);
+                $('.badge[id$="ScoreValue"]').text('3.0');
+                $('#feedbackComment').val('');
+                
+                // 3秒後にパネルを折りたたむ
+                setTimeout(() => {
+                    $('#feedbackPanel').slideUp();
+                }, 3000);
+            } else {
+                showToast('フィードバック送信に失敗しました: ' + response.error, 'error');
+            }
+        },
+        error: function(xhr, status, error) {
+            showToast('フィードバック送信エラー: ' + error, 'error');
+            console.error('Feedback error:', error);
+        },
+        complete: function() {
+            submitBtn.prop('disabled', false).html(originalText);
+        }
+    });
+}
+</script>
+{% endblock %}

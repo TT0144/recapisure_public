@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Apertus学習ダッシュボード - recapisure{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-brain me-2"></i>
+                        Apertus学習システム - リアルタイムダッシュボード
+                        <span class="badge bg-light text-info ms-3">AI Research</span>
+                    </h3>
+                    <p class="mb-0 small opacity-75">フィードバック駆動型AI改善の可視化</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メトリクスサマリー -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-tasks fa-3x text-primary mb-3"></i>
+                    <h6 class="text-muted mb-2">総タスク数</h6>
+                    <h2 class="mb-0" id="totalTasks">0</h2>
+                    <small class="text-muted">件</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                    <h6 class="text-muted mb-2">平均スコア</h6>
+                    <h2 class="mb-0" id="avgScore">0.0</h2>
+                    <small class="text-muted">/ 5.0</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                    <h6 class="text-muted mb-2">改善率</h6>
+                    <h2 class="mb-0" id="improvementRate">0.0%</h2>
+                    <small class="text-muted">初期比</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-trophy fa-3x text-danger mb-3"></i>
+                    <h6 class="text-muted mb-2">最高スコア</h6>
+                    <h2 class="mb-0" id="bestScore">0.0</h2>
+                    <small class="text-muted">/ 5.0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- グラフエリア -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-area me-2 text-success"></i>
+                        正確性トレンド
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="accuracyChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-area me-2 text-primary"></i>
+                        流暢性トレンド
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="fluencyChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統合グラフ -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-info"></i>
+                        総合品質スコアの推移
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="combinedChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- リアルタイム更新情報 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-sync-alt fa-spin text-success me-2"></i>
+                            <strong>リアルタイム更新中</strong>
+                            <span class="text-muted ms-2">5秒ごとに自動更新</span>
+                        </div>
+                        <div>
+                            <small class="text-muted">最終更新: <span id="lastUpdate">-</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let accuracyChart, fluencyChart, combinedChart;
+
+// Chart.jsの初期化
+function initCharts() {
+    // 正確性チャート
+    const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+    accuracyChart = new Chart(accuracyCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '正確性スコア',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // 流暢性チャート
+    const fluencyCtx = document.getElementById('fluencyChart').getContext('2d');
+    fluencyChart = new Chart(fluencyCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '流暢性スコア',
+                data: [],
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+
+    // 統合チャート
+    const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+    combinedChart = new Chart(combinedCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: '正確性',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: '流暢性',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+// メトリクスを更新
+function updateMetrics() {
+    $.get('/api/learning-metrics', function(response) {
+        if (response.success) {
+            const metrics = response.metrics;
+            
+            // サマリー更新
+            $('#totalTasks').text(metrics.total_tasks);
+            $('#avgScore').text(metrics.average_score.toFixed(1));
+            $('#improvementRate').text(metrics.improvement_rate.toFixed(1) + '%');
+            $('#bestScore').text(metrics.best_score.toFixed(1));
+            
+            // グラフ更新
+            updateCharts(metrics);
+            
+            // 最終更新時刻
+            $('#lastUpdate').text(new Date().toLocaleTimeString('ja-JP'));
+        }
+    }).fail(function() {
+        console.error('メトリクス取得失敗');
+    });
+}
+
+// グラフを更新
+function updateCharts(metrics) {
+    const labels = metrics.accuracy_trend.map((_, i) => i + 1);
+    
+    // 正確性チャート
+    accuracyChart.data.labels = labels;
+    accuracyChart.data.datasets[0].data = metrics.accuracy_trend;
+    accuracyChart.update();
+    
+    // 流暢性チャート
+    fluencyChart.data.labels = labels;
+    fluencyChart.data.datasets[0].data = metrics.fluency_trend;
+    fluencyChart.update();
+    
+    // 統合チャート
+    combinedChart.data.labels = labels;
+    combinedChart.data.datasets[0].data = metrics.accuracy_trend;
+    combinedChart.data.datasets[1].data = metrics.fluency_trend;
+    combinedChart.update();
+}
+
+// ページ読み込み時
+$(document).ready(function() {
+    initCharts();
+    updateMetrics();
+    
+    // 5秒ごとに更新
+    setInterval(updateMetrics, 5000);
+});
+</script>
+{% endblock %}

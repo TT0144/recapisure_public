@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}アバウト - recapisure{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- ヘッダー -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 text-primary fw-bold">
+                    <i class="fas fa-magic me-3"></i>recapisure
+                </h1>
+                <p class="lead text-muted">
+                    AIを活用したテキスト要約・展開・URL解析ツール
+                </p>
+                <div class="badge bg-primary fs-6 px-3 py-2">
+                    Version 2.0.0 - Apertus-8B Edition
+                </div>
+            </div>
+
+            <!-- 概要 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>概要
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        recapisureは、AIの力を借りてテキスト処理を効率化するWebアプリケーションです。
+                        長文の要約、短文の展開、URLからの記事要約という3つの主要機能を提供します。
+                    </p>
+                    <p class="mb-0">
+                        直感的なユーザーインターフェースと高速な処理により、
+                        日常的なテキスト作業を大幅に効率化できます。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 主要機能 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-star me-2"></i>主要機能
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-compress-alt fa-3x text-primary mb-3"></i>
+                                <h5 class="fw-bold">長文要約</h5>
+                                <p class="small text-muted mb-0">
+                                    長い文章を効率的に要約し、
+                                    重要なポイントを抽出します
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-expand-alt fa-3x text-success mb-3"></i>
+                                <h5 class="fw-bold">短文展開</h5>
+                                <p class="small text-muted mb-0">
+                                    簡潔なメモを詳細な文章に
+                                    展開・発展させます
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <i class="fas fa-globe fa-3x text-info mb-3"></i>
+                                <h5 class="fw-bold">URL要約</h5>
+                                <p class="small text-muted mb-0">
+                                    WebページのURLから
+                                    自動的に要約を生成します
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 特徴 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-thumbs-up me-2"></i>特徴
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>直感的なUI:</strong> シンプルで使いやすいインターフェース
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>高速処理:</strong> 効率的なAIアルゴリズムによる迅速な結果
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>多形式対応:</strong> PDF、画像、テキストファイル対応
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>OCR機能:</strong> 説明書の写真も要約可能
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>履歴管理:</strong> 過去の処理結果を保存・検索
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>リアルタイム進捗:</strong> 処理状況をリアルタイムで確認
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>レスポンシブ:</strong> PC・タブレット・スマホ対応
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    <strong>エクスポート:</strong> 結果のテキストファイル保存
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用方法 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-question-circle me-2"></i>使用方法
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <ol class="ps-3">
+                                <li class="mb-3">
+                                    <strong>処理モードを選択</strong>
+                                    <p class="text-muted small mb-0">
+                                        メインページで「長文要約」「短文展開」「URL要約」のいずれかを選択します
+                                    </p>
+                                </li>
+                                <li class="mb-3">
+                                    <strong>テキストを入力</strong>
+                                    <p class="text-muted small mb-0">
+                                        テキストエリアに直接入力するか、ファイルをアップロードします
+                                    </p>
+                                </li>
+                                <li class="mb-3">
+                                    <strong>処理を実行</strong>
+                                    <p class="text-muted small mb-0">
+                                        「処理開始」ボタンをクリックして、AI処理を開始します
+                                    </p>
+                                </li>
+                                <li class="mb-3">
+                                    <strong>結果を確認</strong>
+                                    <p class="text-muted small mb-0">
+                                        処理結果を確認し、必要に応じてコピーまたは保存します
+                                    </p>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技術情報 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-cogs me-2"></i>技術情報
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-2">🌐 フロントエンド</h6>
+                            <ul class="small text-muted">
+                                <li>HTML / CSS / JavaScript</li>
+                                <li>Bootstrap 5</li>
+                                <li>Socket.IO (リアルタイム進捗)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-2">⚙️ バックエンド</h6>
+                            <ul class="small text-muted">
+                                <li>Python / Flask</li>
+                                <li>SQLite (履歴保存)</li>
+                                <li>trafilatura (URL抽出)</li>
+                                <li>pdfminer.six / PyPDF2</li>
+                                <li>pytesseract (OCR)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold mb-2">🤖 AI / 要約エンジン</h6>
+                            <ul class="small text-muted">
+                                <li>Apertus-8B-Instruct</li>
+                                <li>Kaggle T4 GPU (15GB)</li>
+                                <li>ngrok (トンネル接続)</li>
+                                <li>🌍 1,811言語対応</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 技術スタックフロー図 -->
+                    <div class="mt-4 text-center">
+                        <h6 class="fw-bold mb-3">📊 技術スタックフロー</h6>
+                        <a href="/static/tech_stack_flow.svg" target="_blank">
+                            <div class="border rounded p-3" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
+                                <img src="/static/tech_stack_flow.svg" alt="技術スタックフロー図" class="img-fluid" style="max-height: 500px;">
+                            </div>
+                        </a>
+                        <p class="small text-muted mt-2">※ クリックで拡大表示</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header text-white" style="background-color: #34495e;">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-question me-2"></i>よくある質問
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                    対応しているファイル形式は？
+                                </button>
+                            </h2>
+                            <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <strong>テキスト系:</strong> PDF、テキストファイル（.txt）、Markdownファイル（.md）<br>
+                                    <strong>画像系:</strong> PNG、JPG、JPEG、GIF、BMP、WEBP<br><br>
+                                    PDFはOCR機能にも対応しており、スキャンされた文書も処理可能です。
+                                    <span class="text-success fw-bold">📷 説明書やマニュアルの写真をアップロードすると、
+                                    自動でテキストを認識して要約できます！</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                    処理できる文字数に制限はありますか？
+                                </button>
+                            </h2>
+                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    現在、一度に処理できる文字数は約10,000文字までです。
+                                    より長い文章の場合は、分割しての処理をお勧めします。
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                    処理結果の保存期間は？
+                                </button>
+                            </h2>
+                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    処理履歴はデータベースに保存され、永続的に保持されます。
+                                    履歴ページからいつでも過去の処理結果を確認できます。
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq4">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                    どのようなURLに対応していますか？
+                                </button>
+                            </h2>
+                            <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    一般的なニュースサイト、ブログ、記事ページに対応しています。
+                                    JavaScript必須のページや認証が必要なページは
+                                    正常に処理できない場合があります。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ライセンス・著作権 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-purple text-white" style="background-color: #6f42c1;">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-gavel me-2"></i>ライセンス・著作権
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>© 2025-2026 recapisure Project</strong>
+                    </p>
+                    <p class="small text-muted mb-3">
+                        このアプリケーションは学習目的で開発されています。
+                    </p>
+                    
+                    <h6 class="fw-bold mb-2">使用ライブラリ・サービス</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="small text-muted mb-0">
+                                <li>Flask / Socket.IO</li>
+                                <li>Apertus-8B-Instruct (Kaggle T4)</li>
+                                <li>trafilatura (URL抽出)</li>
+                                <li>pdfminer.six / PyPDF2</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="small text-muted mb-0">
+                                <li>pytesseract (OCR)</li>
+                                <li>SQLite (履歴DB)</li>
+                                <li>ngrok (トンネル)</li>
+                                <li>transformers / torch</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- アクションボタン -->
+            <div class="text-center mb-5">
+                <a href="/" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-magic me-2"></i>アプリを使ってみる
+                </a>
+                <a href="/history" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-history me-2"></i>処理履歴を見る
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // バージョン情報の取得（実際の実装では適切なAPIを使用）
+    loadVersionInfo();
+    
+    // 統計情報の取得（実際の実装では適切なAPIを使用）
+    loadUsageStats();
+});
+
+function loadVersionInfo() {
+    // 実際の実装では、バックエンドからバージョン情報を取得
+    console.log('Version info loaded');
+}
+
+function loadUsageStats() {
+    // 実際の実装では、使用統計を取得して表示
+    console.log('Usage stats loaded');
+}
+
+// スムーズスクロール
+$('a[href^="#"]').on('click', function(e) {
+    e.preventDefault();
+    var target = $(this.getAttribute('href'));
+    if (target.length) {
+        $('html, body').stop().animate({
+            scrollTop: target.offset().top - 100
+        }, 800);
+    }
+});
+</script>
+{% endblock %}
